@@ -1,37 +1,52 @@
-// Requiere Node.js instalado
-// Ejecuta: npm install express socket.io
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Servir archivos estáticos desde la carpeta "public"
+// Conecta a MongoDB Atlas (pon tu URI aquí)
+mongoose.connect('mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Conectado a MongoDB Atlas'))
+.catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+
+// Esquema y modelo de mensajes
+const mensajeSchema = new mongoose.Schema({
+  chatId: String,
+  autor: String,
+  texto: String,
+  hora: Date,
+});
+const Mensaje = mongoose.model('Mensaje', mensajeSchema);
+
 app.use(express.static(__dirname + '/public'));
 
-// Asegura que la carpeta "chats" exista
-const chatsDir = path.join(__dirname, 'chats');
-if (!fs.existsSync(chatsDir)) {
-  fs.mkdirSync(chatsDir, { recursive: true });
-  console.log('📁 Carpeta "chats" creada automáticamente.');
-}
+// Endpoint para obtener historial de chat
+app.get('/chat/:chatId', async (req, res) => {
+  try {
+    const mensajes = await Mensaje.find({ chatId: req.params.chatId }).sort({ hora: 1 });
+    res.json(mensajes);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener mensajes' });
+  }
+});
 
 io.on('connection', (socket) => {
   let userType = null;
   let chatId = null;
 
   socket.on('joinChat', ({ type, id }) => {
-    userType = type; // "cliente", "jugador" o "admin"
+    userType = type;
     chatId = id;
     socket.join(chatId);
   });
 
-  socket.on('sendMessage', (msg) => {
+  socket.on('sendMessage', async (msg) => {
     if (!chatId || !userType) return;
 
     const alias =
@@ -40,31 +55,24 @@ io.on('connection', (socket) => {
       'Admin';
 
     const message = {
+      chatId,
       autor: alias,
       texto: msg,
-      hora: new Date().toISOString()
+      hora: new Date(),
     };
 
-    // Enviar mensaje al chat correspondiente
-    io.to(chatId).emit('receiveMessage', message);
-
-    // Guardar el mensaje en el archivo JSON correspondiente, sin sobrescribir
-    const filePath = path.join(chatsDir, `${chatId}.json`);
     try {
-      let messages = [];
-      if (fs.existsSync(filePath)) {
-        messages = JSON.parse(fs.readFileSync(filePath));
-      }
-      messages.push(message);
-      fs.writeFileSync(filePath, JSON.stringify(messages, null, 2));
-      console.log(`💾 Mensaje agregado a ${filePath}`);
+      const nuevoMensaje = new Mensaje(message);
+      await nuevoMensaje.save();
+      console.log('💾 Mensaje guardado en MongoDB');
     } catch (err) {
-      console.error('❌ Error al guardar mensaje en el chat:', err);
+      console.error('❌ Error guardando mensaje:', err);
     }
+
+    io.to(chatId).emit('receiveMessage', message);
   });
 });
 
-// Iniciar el servidor
 server.listen(3000, () => {
   console.log('🚀 Servidor en http://localhost:3000');
 });
