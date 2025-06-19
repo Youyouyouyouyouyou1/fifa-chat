@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Chat Anónimo FIFA</title>
   <style>
     body {
@@ -13,6 +13,10 @@
     #chat {
       list-style: none;
       padding: 0;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      margin-bottom: 1rem;
     }
     #chat li {
       margin-bottom: 8px;
@@ -28,7 +32,7 @@
 </head>
 <body>
   <h2>Chat</h2>
-  <input id="msg" placeholder="Escribe tu mensaje..." autofocus>
+  <input id="msg" placeholder="Escribe tu mensaje..." autofocus />
   <button onclick="enviar()">Enviar</button>
   <ul id="chat"></ul>
 
@@ -44,14 +48,36 @@
       throw new Error("Datos inválidos");
     }
 
+    // Unirse al chat via socket
     socket.emit('joinChat', { type: userType, id: chatId });
 
-    socket.on('receiveMessage', (msg) => {
+    // Función para mostrar mensajes en la lista
+    function mostrarMensaje(msg) {
       const li = document.createElement('li');
       li.textContent = `${msg.autor}: ${msg.texto} (${new Date(msg.hora).toLocaleTimeString()})`;
       document.getElementById('chat').appendChild(li);
-    });
+      // Auto-scroll hacia abajo
+      const chatUl = document.getElementById('chat');
+      chatUl.scrollTop = chatUl.scrollHeight;
+    }
 
+    // Cargar historial de mensajes desde backend
+    async function cargarHistorial() {
+      try {
+        const res = await fetch(`/chat/${chatId}`);
+        const mensajes = await res.json();
+        mensajes.forEach(mostrarMensaje);
+      } catch (err) {
+        console.error('Error cargando historial:', err);
+      }
+    }
+
+    cargarHistorial();
+
+    // Escuchar mensajes nuevos via socket
+    socket.on('receiveMessage', mostrarMensaje);
+
+    // Enviar nuevo mensaje
     function enviar() {
       const input = document.getElementById('msg');
       const msg = input.value.trim();
@@ -59,8 +85,8 @@
       input.value = '';
     }
 
-    // Permitir enviar con Enter
-    document.getElementById('msg').addEventListener('keydown', (e) => {
+    // Enviar con Enter
+    document.getElementById('msg').addEventListener('keydown', e => {
       if (e.key === 'Enter') enviar();
     });
   </script>
