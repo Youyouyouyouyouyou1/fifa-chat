@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Anónimo FIFA</title>
+</head>
+<body>
+  <h2>Chat</h2>
+  <input id="msg" placeholder="Escribe tu mensaje...">
+  <button onclick="enviar()">Enviar</button>
+  <ul id="chat"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const chatId = prompt("Introduce ID del pedido:");
+    const userType = prompt("¿Eres cliente, jugador o admin?");
+    socket.emit('joinChat', { type: userType, id: chatId });
+
+    socket.on('receiveMessage', (msg) => {
+      const li = document.createElement('li');
+      li.textContent = `${msg.autor}: ${msg.texto} (${new Date(msg.hora).toLocaleTimeString()})`;
+      document.getElementById('chat').appendChild(li);
+    });
+
+    function enviar() {
+      const msg = document.getElementById('msg').value;
+      if (msg.trim()) socket.emit('sendMessage', msg);
+      document.getElementById('msg').value = '';
+    }
+  </script>
+</body>
+</html>
