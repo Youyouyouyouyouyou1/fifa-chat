@@ -1,20 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Chat Anónimo FIFA</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 2rem;
+    }
+    #chat {
+      list-style: none;
+      padding: 0;
+    }
+    #chat li {
+      margin-bottom: 8px;
+      background: #f1f1f1;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    input, button {
+      padding: 8px;
+      font-size: 1rem;
+    }
+  </style>
 </head>
 <body>
   <h2>Chat</h2>
-  <input id="msg" placeholder="Escribe tu mensaje...">
+  <input id="msg" placeholder="Escribe tu mensaje..." autofocus>
   <button onclick="enviar()">Enviar</button>
   <ul id="chat"></ul>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+
     const chatId = prompt("Introduce ID del pedido:");
-    const userType = prompt("¿Eres cliente, jugador o admin?");
+    const userType = prompt("¿Eres cliente, jugador o admin?").toLowerCase();
+
+    if (!chatId || !['cliente', 'jugador', 'admin'].includes(userType)) {
+      alert('Debes ingresar un ID válido y un tipo de usuario correcto.');
+      throw new Error("Datos inválidos");
+    }
+
     socket.emit('joinChat', { type: userType, id: chatId });
 
     socket.on('receiveMessage', (msg) => {
@@ -24,10 +53,16 @@
     });
 
     function enviar() {
-      const msg = document.getElementById('msg').value;
-      if (msg.trim()) socket.emit('sendMessage', msg);
-      document.getElementById('msg').value = '';
+      const input = document.getElementById('msg');
+      const msg = input.value.trim();
+      if (msg) socket.emit('sendMessage', msg);
+      input.value = '';
     }
+
+    // Permitir enviar con Enter
+    document.getElementById('msg').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') enviar();
+    });
   </script>
 </body>
 </html>
