@@ -1,0 +1,47 @@
+[
+  {
+    "autor": "Admin",
+    "texto": "hola",
+    "hora": "2025-06-19T15:30:55.243Z"
+  },
+  {
+    "autor": "Jugador 1",
+    "texto": "hola",
+    "hora": "2025-06-19T15:31:16.958Z"
+  },
+  {
+    "autor": "Admin",
+    "texto": "como estas",
+    "hora": "2025-06-19T15:31:33.158Z"
+  },
+  {
+    "autor": "Cliente A",
+    "texto": "hola",
+    "hora": "2025-06-19T15:31:46.863Z"
+  },
+  {
+    "autor": "Cliente A",
+    "texto": "hola",
+    "hora": "2025-06-19T16:12:54.127Z"
+  },
+  {
+    "autor": "Jugador 1",
+    "texto": "puta",
+    "hora": "2025-06-19T16:13:01.170Z"
+  },
+  {
+    "autor": "Admin",
+    "texto": "manolo gay",
+    "hora": "2025-06-19T16:13:11.074Z"
+  },
+  {
+    "autor": "Cliente A",
+    "texto": "como va ",
+    "hora": "2025-06-19T16:13:23.066Z"
+  },
+  {
+    "autor": "Jugador 1",
+    "texto": "bien",
+    "hora": "2025-06-19T16:13:28.421Z"
+  }
+]
