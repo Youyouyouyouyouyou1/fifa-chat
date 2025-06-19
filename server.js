@@ -9,7 +9,6 @@ const io = socketIo(server);
 
 // Conecta a MongoDB Atlas (pon tu URI aquí)
 mongoose.connect('mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
-  useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log('✅ Conectado a MongoDB Atlas'))
