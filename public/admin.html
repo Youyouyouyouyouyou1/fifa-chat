@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Modo Admin - Chat</title>
   <style>
     body {
@@ -66,7 +66,7 @@
 <body>
   <h2>Chat admin</h2>
 
-  <input type="text" id="filtro" placeholder="Buscar por texto o fecha (aaaa-mm-dd)" oninput="filtrarMensajes()">
+  <input type="text" id="filtro" placeholder="Buscar por texto o fecha (aaaa-mm-dd)" oninput="filtrarMensajes()" />
 
   <ul id="mensajes"></ul>
 
@@ -75,14 +75,14 @@
     const chatId = urlParams.get('chatId');
 
     if (!chatId) {
-      document.body.innerHTML = '<h3>Error: falta ?chatId=fifa123 en la URL</h3>';
+      document.body.innerHTML = '<h3>Error: falta ?chatId= en la URL</h3>';
       throw new Error('Falta chatId');
     }
 
     fetch(`/api/mensajes?chatId=${chatId}`)
       .then(res => res.json())
       .then(data => mostrarMensajes(data))
-      .catch(err => alert('Error al cargar mensajes'));
+      .catch(() => alert('Error al cargar mensajes'));
 
     let todos = [];
 
@@ -110,3 +110,4 @@
   </script>
 </body>
 </html>
+
