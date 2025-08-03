@@ -51,8 +51,8 @@ app.get('/api/mensajes', async (req, res) => {
 
 // Contraseñas para roles que las requieren
 const passwords = {
-  jugador: 'jugador123',
-  admin: 'admin123',
+  jugador: 'JAHEUhdjjdbc234hd',
+  admin: 'somoslosputosamos23dhf1A',
 };
 
 io.on('connection', (socket) => {
@@ -115,3 +115,4 @@ io.on('connection', (socket) => {
 server.listen(3000, '0.0.0.0', () => {
   console.log('🚀 Servidor en http://localhost:3000');
 });
+
