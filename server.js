@@ -9,6 +9,7 @@ const io = socketIo(server);
 
 // Conecta a MongoDB Atlas (pon tu URI aquí)
 mongoose.connect('mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log('✅ Conectado a MongoDB Atlas'))
@@ -25,13 +26,27 @@ const Mensaje = mongoose.model('Mensaje', mensajeSchema);
 
 app.use(express.static(__dirname + '/public'));
 
-// Endpoint para obtener historial de chat
+// Endpoint para obtener historial de chat (ruta antigua)
+// Se puede dejar o eliminar si no se usa
 app.get('/chat/:chatId', async (req, res) => {
   try {
     const mensajes = await Mensaje.find({ chatId: req.params.chatId }).sort({ hora: 1 });
     res.json(mensajes);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener mensajes' });
+  }
+});
+
+// Nueva ruta para admin.html: Obtener mensajes en formato JSON mediante query ?chatId=
+app.get('/api/mensajes', async (req, res) => {
+  const chatId = req.query.chatId;
+  if (!chatId) return res.status(400).send({ error: 'Falta chatId' });
+
+  try {
+    const mensajes = await Mensaje.find({ chatId }).sort({ hora: 1 });
+    res.json(mensajes);
+  } catch (err) {
+    res.status(500).send({ error: 'Error al obtener mensajes' });
   }
 });
 
@@ -75,5 +90,6 @@ io.on('connection', (socket) => {
 server.listen(3000, () => {
   console.log('🚀 Servidor en http://localhost:3000');
 });
+
 
 
