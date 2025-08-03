@@ -5,28 +5,50 @@
   <title>Chat Anónimo FIFA</title>
   <style>
     body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: auto;
+      font-family: Arial, sans-serif;
+      background: #e5ddd5;
+      margin: 0;
       padding: 2rem;
     }
-    #chat {
+    h2 {
+      color: #075e54;
+    }
+    ul {
       list-style: none;
       padding: 0;
       max-height: 400px;
       overflow-y: auto;
-      border: 1px solid #ccc;
-      margin-bottom: 1rem;
     }
-    #chat li {
-      margin-bottom: 8px;
-      background: #f1f1f1;
-      padding: 8px;
-      border-radius: 5px;
+    li {
+      margin-bottom: 10px;
+      padding: 10px;
+      max-width: 60%;
+      border-radius: 15px;
+      position: relative;
     }
-    input, button {
-      padding: 8px;
-      font-size: 1rem;
+    .cliente {
+      background: #dcf8c6;
+      align-self: flex-start;
+    }
+    .jugador {
+      background: #ffffff;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .admin {
+      background: #ffeeba;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .hora {
+      font-size: 0.8em;
+      color: gray;
+      margin-top: 5px;
+    }
+    #chat {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
   </style>
 </head>
@@ -43,25 +65,37 @@
     const chatId = prompt("Introduce ID del pedido:");
     const userType = prompt("¿Eres cliente, jugador o admin?").toLowerCase();
 
+    let username = '';
+    let password = '';
+
+    if (userType === 'jugador') {
+      username = prompt("Nombre de jugador:");
+      password = prompt("Contraseña:");
+    } else if (userType === 'admin') {
+      password = prompt("Contraseña:");
+    }
+
     if (!chatId || !['cliente', 'jugador', 'admin'].includes(userType)) {
       alert('Debes ingresar un ID válido y un tipo de usuario correcto.');
       throw new Error("Datos inválidos");
     }
 
-    // Unirse al chat via socket
-    socket.emit('joinChat', { type: userType, id: chatId });
+    socket.emit('joinChat', { type: userType, id: chatId, user: username, password });
 
-    // Función para mostrar mensajes en la lista
+    socket.on('authError', (msg) => {
+      alert(msg);
+      location.reload();
+    });
+
     function mostrarMensaje(msg) {
       const li = document.createElement('li');
-      li.textContent = `${msg.autor}: ${msg.texto} (${new Date(msg.hora).toLocaleTimeString()})`;
+      li.className = msg.autor.includes('Cliente') ? 'cliente' :
+                     msg.autor.includes('Jugador') ? 'jugador' : 'admin';
+      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleTimeString()}</div>`;
       document.getElementById('chat').appendChild(li);
-      // Auto-scroll hacia abajo
-      const chatUl = document.getElementById('chat');
-      chatUl.scrollTop = chatUl.scrollHeight;
+      document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
     }
 
-    // Cargar historial de mensajes desde backend
     async function cargarHistorial() {
       try {
         const res = await fetch(`/chat/${chatId}`);
@@ -73,11 +107,8 @@
     }
 
     cargarHistorial();
-
-    // Escuchar mensajes nuevos via socket
     socket.on('receiveMessage', mostrarMensaje);
 
-    // Enviar nuevo mensaje
     function enviar() {
       const input = document.getElementById('msg');
       const msg = input.value.trim();
@@ -85,10 +116,10 @@
       input.value = '';
     }
 
-    // Enviar con Enter
     document.getElementById('msg').addEventListener('keydown', e => {
       if (e.key === 'Enter') enviar();
     });
   </script>
 </body>
 </html>
+
