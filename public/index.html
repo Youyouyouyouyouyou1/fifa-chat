@@ -6,37 +6,35 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #e5ddd5;
-      margin: 0;
+      max-width: 600px;
+      margin: auto;
       padding: 2rem;
+      background: #e5ddd5; /* estilo como admin */
     }
-    h2 {
-      color: #075e54;
-    }
-    ul {
+    #chat {
       list-style: none;
       padding: 0;
       max-height: 400px;
       overflow-y: auto;
+      border: 1px solid #ccc;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    li {
-      margin-bottom: 10px;
+    #chat li {
+      margin-bottom: 8px;
       padding: 10px;
-      max-width: 60%;
       border-radius: 15px;
+      max-width: 60%;
       position: relative;
     }
     .cliente {
       background: #dcf8c6;
       align-self: flex-start;
     }
-    .jugador {
+    .jugador, .admin {
       background: #ffffff;
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    .admin {
-      background: #ffeeba;
       align-self: flex-end;
       margin-left: auto;
     }
@@ -45,57 +43,141 @@
       color: gray;
       margin-top: 5px;
     }
-    #chat {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    input, button {
+      padding: 8px;
+      font-size: 1rem;
+    }
+    #loginDiv {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
   <h2>Chat</h2>
-  <input id="msg" placeholder="Escribe tu mensaje..." autofocus />
-  <button onclick="enviar()">Enviar</button>
+
+  <div id="loginDiv">
+    <label>Pedido ID: <input id="chatIdInput" /></label><br/>
+    <label>Rol:
+      <select id="userTypeSelect">
+        <option value="cliente">Cliente</option>
+        <option value="jugador">Jugador</option>
+        <option value="admin">Admin</option>
+      </select>
+    </label><br/>
+    <label id="passwordLabel" style="display:none;">
+      Contraseña: <input type="password" id="passwordInput" />
+    </label><br/>
+    <button id="loginBtn">Entrar al chat</button>
+  </div>
+
+  <input id="msg" placeholder="Escribe tu mensaje..." autofocus style="display:none;" />
+  <button onclick="enviar()" style="display:none;" id="sendBtn">Enviar</button>
   <ul id="chat"></ul>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
-    const chatId = prompt("Introduce ID del pedido:");
-    const userType = prompt("¿Eres cliente, jugador o admin?").toLowerCase();
+    const passwords = {
+      admin: 'admin123',
+      jugador1: 'jugador1pass',
+      jugador2: 'jugador2pass'
+    };
 
-    let username = '';
-    let password = '';
+    let chatId = null;
+    let userType = null;
+    let loggedIn = false;
 
-    if (userType === 'jugador') {
-      username = prompt("Nombre de jugador:");
-      password = prompt("Contraseña:");
-    } else if (userType === 'admin') {
-      password = prompt("Contraseña:");
-    }
+    const chatIdInput = document.getElementById('chatIdInput');
+    const userTypeSelect = document.getElementById('userTypeSelect');
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordLabel = document.getElementById('passwordLabel');
+    const loginBtn = document.getElementById('loginBtn');
+    const msgInput = document.getElementById('msg');
+    const sendBtn = document.getElementById('sendBtn');
+    const chatUl = document.getElementById('chat');
 
-    if (!chatId || !['cliente', 'jugador', 'admin'].includes(userType)) {
-      alert('Debes ingresar un ID válido y un tipo de usuario correcto.');
-      throw new Error("Datos inválidos");
-    }
-
-    socket.emit('joinChat', { type: userType, id: chatId, user: username, password });
-
-    socket.on('authError', (msg) => {
-      alert(msg);
-      location.reload();
+    // Mostrar campo contraseña sólo para jugador y admin
+    userTypeSelect.addEventListener('change', () => {
+      if(userTypeSelect.value === 'cliente') {
+        passwordLabel.style.display = 'none';
+      } else {
+        passwordLabel.style.display = 'inline';
+      }
     });
 
+    loginBtn.onclick = () => {
+      const id = chatIdInput.value.trim();
+      const type = userTypeSelect.value;
+      const pwd = passwordInput.value;
+
+      if(!id) {
+        alert('Ingresa el ID del pedido.');
+        return;
+      }
+
+      if(type !== 'cliente') {
+        // Verificar contraseña
+        if(type === 'admin' && pwd !== passwords.admin) {
+          alert('Contraseña incorrecta para administrador');
+          return;
+        }
+        // Para jugador, pedimos además identificar cuál jugador (por ejemplo por usuario)
+        if(type === 'jugador') {
+          // Pedir nombre o número de jugador para diferenciar
+          const jugadorNombre = prompt('Ingrese nombre del jugador (jugador1 o jugador2):').toLowerCase();
+          if(!['jugador1', 'jugador2'].includes(jugadorNombre)) {
+            alert('Jugador inválido');
+            return;
+          }
+          if(pwd !== passwords[jugadorNombre]) {
+            alert('Contraseña incorrecta para jugador');
+            return;
+          }
+          userType = 'jugador';
+          // Guardar alias para usar en mensajes (opcional)
+          aliasJugador = jugadorNombre.charAt(0).toUpperCase() + jugadorNombre.slice(1);
+        } else {
+          userType = type;
+        }
+      } else {
+        userType = type;
+      }
+
+      chatId = id;
+      loggedIn = true;
+
+      // Ocultar login, mostrar chat
+      document.getElementById('loginDiv').style.display = 'none';
+      msgInput.style.display = 'inline-block';
+      sendBtn.style.display = 'inline-block';
+
+      // Unirse al chat via socket
+      socket.emit('joinChat', { type: userType, id: chatId });
+
+      cargarHistorial();
+    };
+
+    // Mostrar mensajes en la lista
     function mostrarMensaje(msg) {
       const li = document.createElement('li');
-      li.className = msg.autor.includes('Cliente') ? 'cliente' :
-                     msg.autor.includes('Jugador') ? 'jugador' : 'admin';
-      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleTimeString()}</div>`;
-      document.getElementById('chat').appendChild(li);
-      document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+
+      if(msg.autor.includes('Cliente')) {
+        li.className = 'cliente';
+      } else if(msg.autor.includes('Jugador')) {
+        li.className = 'jugador';
+      } else if(msg.autor.includes('Admin')) {
+        li.className = 'admin';
+      }
+
+      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleString()}</div>`;
+      chatUl.appendChild(li);
+
+      // Auto-scroll hacia abajo
+      chatUl.scrollTop = chatUl.scrollHeight;
     }
 
+    // Cargar historial
     async function cargarHistorial() {
       try {
         const res = await fetch(`/chat/${chatId}`);
@@ -106,20 +188,28 @@
       }
     }
 
-    cargarHistorial();
-    socket.on('receiveMessage', mostrarMensaje);
+    // Escuchar mensajes nuevos via socket
+    socket.on('receiveMessage', (msg) => {
+      mostrarMensaje(msg);
+    });
 
+    // Enviar mensaje
     function enviar() {
-      const input = document.getElementById('msg');
-      const msg = input.value.trim();
-      if (msg) socket.emit('sendMessage', msg);
-      input.value = '';
+      const msg = msgInput.value.trim();
+      if (msg) {
+        // Para jugador, usar alias personalizado
+        if(userType === 'jugador' && typeof aliasJugador !== 'undefined') {
+          socket.emit('sendMessage', msg);
+        } else {
+          socket.emit('sendMessage', msg);
+        }
+        msgInput.value = '';
+      }
     }
 
-    document.getElementById('msg').addEventListener('keydown', e => {
+    // Enter para enviar
+    msgInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') enviar();
     });
-  </script>
-</body>
-</html>
+
 
