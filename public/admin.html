@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Modo Admin - Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e5ddd5;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    h2 {
+      color: #075e54;
+    }
+
+    #busqueda {
+      margin-bottom: 1rem;
+    }
+
+    input {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 60%;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 10px 0;
+      padding: 10px;
+      max-width: 60%;
+      border-radius: 15px;
+      position: relative;
+    }
+
+    .cliente {
+      background: #dcf8c6;
+      align-self: flex-start;
+    }
+
+    .jugador {
+      background: #ffffff;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .hora {
+      font-size: 0.8em;
+      color: gray;
+      margin-top: 5px;
+    }
+
+    #mensajes {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Chat admin</h2>
+
+  <input type="text" id="filtro" placeholder="Buscar por texto o fecha (aaaa-mm-dd)" oninput="filtrarMensajes()">
+
+  <ul id="mensajes"></ul>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chatId');
+
+    if (!chatId) {
+      document.body.innerHTML = '<h3>Error: falta ?chatId=fifa123 en la URL</h3>';
+      throw new Error('Falta chatId');
+    }
+
+    fetch(`/api/mensajes?chatId=${chatId}`)
+      .then(res => res.json())
+      .then(data => mostrarMensajes(data))
+      .catch(err => alert('Error al cargar mensajes'));
+
+    let todos = [];
+
+    function mostrarMensajes(mensajes) {
+      todos = mensajes;
+      const contenedor = document.getElementById('mensajes');
+      contenedor.innerHTML = '';
+
+      mensajes.forEach(m => {
+        const li = document.createElement('li');
+        li.className = m.autor.includes('Cliente') ? 'cliente' : 'jugador';
+        li.innerHTML = `<strong>${m.autor}</strong><br>${m.texto}<div class="hora">${new Date(m.hora).toLocaleString()}</div>`;
+        contenedor.appendChild(li);
+      });
+    }
+
+    function filtrarMensajes() {
+      const texto = document.getElementById('filtro').value.toLowerCase();
+      const filtrados = todos.filter(m =>
+        m.texto.toLowerCase().includes(texto) ||
+        m.hora.slice(0, 10).includes(texto)
+      );
+      mostrarMensajes(filtrados);
+    }
+  </script>
+</body>
+</html>
