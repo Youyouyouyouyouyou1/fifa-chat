@@ -48,16 +48,20 @@ app.get('/api/mensajes', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
+  console.log('🔌 Nuevo cliente conectado:', socket.id);
+
   let userType = null;
   let chatId = null;
 
   socket.on('joinChat', ({ type, id }) => {
+    console.log(`➡️ Usuario se une: tipo=${type}, chatId=${id}`);
     userType = type;
     chatId = id;
     socket.join(chatId);
   });
 
   socket.on('sendMessage', async (msg) => {
+    console.log(`💬 Mensaje recibido de chatId=${chatId}, tipo=${userType}:`, msg);
     if (!chatId || !userType) return;
 
     const alias =
@@ -87,3 +91,4 @@ io.on('connection', (socket) => {
 server.listen(3000, '0.0.0.0', () => {
   console.log('🚀 Servidor en http://localhost:3000');
 });
+
