@@ -85,8 +85,8 @@ io.on('connection', (socket) => {
     if (!chatId || !userType) return;
 
     const alias =
-      userType === 'cliente' ? 'Cliente A' :
-      userType === 'jugador' ? 'Jugador 1' :
+      userType === 'cliente' ? 'Cliente' :
+      userType === 'jugador' ? 'Jugador' :
       'Admin';
 
     const message = {
@@ -115,4 +115,5 @@ io.on('connection', (socket) => {
 server.listen(3000, '0.0.0.0', () => {
   console.log('🚀 Servidor en http://localhost:3000');
 });
+
 
