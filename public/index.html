@@ -2,154 +2,233 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ULTIMATEFUT CHAT</title>
+  <title>ULTIMATEFUTSERVICE CHAT</title>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0a0a0a, #002b5b);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    #chat-container {
-      width: 95%;
-      max-width: 800px;
-      background: rgba(0, 0, 0, 0.85);
-      border-radius: 10px;
-      padding: 20px;
+      background: linear-gradient(145deg, #0a0f1f, #1a2238);
+      color: #fff;
       display: flex;
       flex-direction: column;
-      height: 90vh;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
     }
+
     h2 {
       text-align: center;
-      margin: 0 0 10px 0;
-      font-size: 1.5em;
-      color: #00aaff;
+      margin-bottom: 2rem;
+      color: #00ffea;
     }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
+
+    #loginForm {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    input, select, button {
       padding: 10px;
-      border: 1px solid #444;
-      border-radius: 5px;
-      background: rgba(255, 255, 255, 0.05);
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
     }
-    .message {
-      max-width: 70%;
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.4;
-      display: inline-block;
-    }
-    .cliente {
-      background-color: #00aaff;
+
+    input, select {
+      background: rgba(255,255,255,0.1);
       color: white;
+    }
+
+    input::placeholder {
+      color: rgba(255,255,255,0.6);
+    }
+
+    select option {
+      background: #1a2238;
+      color: #fff;
+    }
+
+    button {
+      background: #00ffea;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    button:hover {
+      background: #00d4c2;
+      transform: scale(1.03);
+    }
+
+    #chat {
+      list-style: none;
+      padding: 1rem;
+      max-height: 500px;
+      overflow-y: auto;
+      margin: 1rem auto;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 15px;
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #chat li {
+      padding: 10px;
+      border-radius: 12px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .cliente {
+      background: #00ffea;
+      color: #000;
       align-self: flex-start;
     }
+
     .jugador {
-      background-color: #1f1f1f;
-      color: #fff;
+      background: #fff;
+      color: #000;
       align-self: flex-end;
     }
+
     .admin {
-      background-color: #ffcc00;
-      color: black;
-      align-self: center;
+      background: #ffcc00;
+      color: #000;
+      align-self: flex-end;
     }
-    small {
-      display: block;
-      font-size: 10px;
-      margin-top: 4px;
-      opacity: 0.7;
+
+    .hora {
+      font-size: 0.8em;
+      color: rgba(255,255,255,0.7);
+      margin-top: 5px;
     }
-    form {
-      display: flex;
-      margin-top: 10px;
+
+    #msg, #btnSend {
+      max-width: 700px;
+      width: 100%;
     }
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 5px 0 0 5px;
-      font-size: 14px;
-    }
-    button {
-      padding: 10px 20px;
-      border: none;
-      background-color: #00aaff;
+
+    #msg {
+      background: rgba(255,255,255,0.1);
       color: white;
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 0 5px 5px 0;
+      padding: 10px;
+      margin-bottom: 0.5rem;
     }
-    button:hover {
-      background-color: #008ecc;
+
+    #msg::placeholder {
+      color: rgba(255,255,255,0.6);
     }
-    @media (max-width: 600px) {
-      .message {
-        max-width: 85%;
-        font-size: 13px;
-      }
-      h2 {
-        font-size: 1.2em;
-      }
-    }
+
   </style>
 </head>
 <body>
-  <div id="chat-container">
-    <h2>ULTIMATEFUT CHAT</h2>
-    <div id="messages"></div>
-    <form id="form">
-      <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
-      <button>Enviar</button>
-    </form>
+  <h2>💬 Chat ULTIMATEFUTSERVICE</h2>
+
+  <div id="loginForm">
+    <input id="chatIdInput" placeholder="Introduce ID del pedido" autocomplete="off" />
+    <select id="userTypeSelect">
+      <option value="">Selecciona tu rol</option>
+      <option value="cliente">Cliente</option>
+      <option value="jugador">Jugador</option>
+      <option value="admin">Admin</option>
+    </select>
+    <input id="passwordInput" type="password" placeholder="Contraseña (solo jugador/admin)" style="display:none;" autocomplete="off" />
+    <button id="btnEnter">Entrar al chat</button>
   </div>
+
+  <ul id="chat" style="display:none;"></ul>
+
+  <input id="msg" placeholder="Escribe tu mensaje..." autofocus style="display:none;" autocomplete="off"/>
+  <button id="btnSend" style="display:none;">Enviar</button>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get("type");
-    const id = params.get("id");
 
-    socket.emit("joinChat", { type, id });
+    const chatIdInput = document.getElementById('chatIdInput');
+    const userTypeSelect = document.getElementById('userTypeSelect');
+    const passwordInput = document.getElementById('passwordInput');
+    const btnEnter = document.getElementById('btnEnter');
+    const chatUl = document.getElementById('chat');
+    const msgInput = document.getElementById('msg');
+    const btnSend = document.getElementById('btnSend');
+    const loginForm = document.getElementById('loginForm');
 
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
+    let chatId = null;
+    let userType = null;
 
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (input.value) {
-        socket.emit("sendMessage", input.value);
-        input.value = "";
-      }
+    userTypeSelect.addEventListener('change', () => {
+      passwordInput.style.display = (userTypeSelect.value === 'jugador' || userTypeSelect.value === 'admin') ? 'block' : 'none';
     });
 
-    socket.on("receiveMessage", (msg) => {
-      const item = document.createElement("div");
-      item.classList.add("message");
+    btnEnter.addEventListener('click', () => {
+      chatId = chatIdInput.value.trim();
+      userType = userTypeSelect.value;
+      const password = passwordInput.value;
 
-      if (msg.autor.toLowerCase().includes("cliente")) {
-        item.classList.add("cliente");
-      } else if (msg.autor.toLowerCase().includes("jugador")) {
-        item.classList.add("jugador");
-      } else {
-        item.classList.add("admin");
-      }
+      if (!chatId) return alert('Debes introducir un ID del pedido.');
+      if (!['cliente', 'jugador', 'admin'].includes(userType)) return alert('Selecciona un rol válido.');
 
-      item.innerHTML = <strong>${msg.autor}</strong><br>${msg.texto}<small>${new Date(msg.hora).toLocaleString()}</small>;
-      messages.appendChild(item);
-      messages.scrollTop = messages.scrollHeight;
+      socket.emit('joinChat', { type: userType, id: chatId, password });
+
+      socket.once('errorMsg', (msg) => alert(msg));
+
+      socket.once('joined', (data) => {
+        if (data.success) {
+          loginForm.style.display = 'none';
+          chatUl.style.display = 'flex';
+          msgInput.style.display = 'inline-block';
+          btnSend.style.display = 'inline-block';
+          cargarHistorial();
+        }
+      });
     });
+
+    function mostrarMensaje(msg) {
+      const li = document.createElement('li');
+      let clase = 'cliente';
+      if (msg.autor.includes('Jugador')) clase = 'jugador';
+      if (msg.autor === 'Admin') clase = 'admin';
+
+      li.className = clase;
+      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleString()}</div>`;
+      chatUl.appendChild(li);
+      chatUl.scrollTop = chatUl.scrollHeight;
+    }
+
+    async function cargarHistorial() {
+      try {
+        const res = await fetch(`/chat/${chatId}`);
+        const mensajes = await res.json();
+        mensajes.forEach(mostrarMensaje);
+      } catch {
+        alert('Error cargando historial');
+      }
+    }
+
+    socket.on('receiveMessage', mostrarMensaje);
+
+    btnSend.addEventListener('click', enviar);
+    msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && enviar());
+
+    function enviar() {
+      const msg = msgInput.value.trim();
+      if (!msg) return;
+      socket.emit('sendMessage', msg);
+      msgInput.value = '';
+    }
   </script>
 </body>
 </html>
