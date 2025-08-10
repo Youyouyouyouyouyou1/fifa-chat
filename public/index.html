@@ -2,173 +2,154 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>ULTIMATEFUTSERVICE CHAT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ULTIMATEFUT CHAT</title>
   <style>
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: auto;
-      padding: 2rem;
-      background: #e5ddd5;
+      background: linear-gradient(135deg, #0a0a0a, #002b5b);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-    #chat {
-      list-style: none;
-      padding: 0;
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      margin-bottom: 1rem;
+    #chat-container {
+      width: 95%;
+      max-width: 800px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 10px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      height: 90vh;
     }
-    #chat li {
-      margin-bottom: 8px;
-      padding: 8px;
-      border-radius: 15px;
-      max-width: 60%;
-      position: relative;
+    h2 {
+      text-align: center;
+      margin: 0 0 10px 0;
+      font-size: 1.5em;
+      color: #00aaff;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .message {
+      max-width: 70%;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      display: inline-block;
     }
     .cliente {
-      background: #dcf8c6;
+      background-color: #00aaff;
+      color: white;
       align-self: flex-start;
     }
-    .jugador, .admin {
-      background: #ffffff;
+    .jugador {
+      background-color: #1f1f1f;
+      color: #fff;
       align-self: flex-end;
-      margin-left: auto;
     }
-    .hora {
-      font-size: 0.8em;
-      color: gray;
-      margin-top: 5px;
+    .admin {
+      background-color: #ffcc00;
+      color: black;
+      align-self: center;
     }
-    input, button {
-      padding: 8px;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    small {
+      display: block;
+      font-size: 10px;
+      margin-top: 4px;
+      opacity: 0.7;
     }
-    #loginForm {
-      max-width: 400px;
-      margin: auto;
-      margin-bottom: 2rem;
+    form {
+      display: flex;
+      margin-top: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px 0 0 5px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #00aaff;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 0 5px 5px 0;
+    }
+    button:hover {
+      background-color: #008ecc;
+    }
+    @media (max-width: 600px) {
+      .message {
+        max-width: 85%;
+        font-size: 13px;
+      }
+      h2 {
+        font-size: 1.2em;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>Chat Anónimo FIFA</h2>
-
-  <div id="loginForm">
-    <input id="chatIdInput" placeholder="Introduce ID del pedido" autocomplete="off" />
-    <select id="userTypeSelect">
-      <option value="">Selecciona tu rol</option>
-      <option value="cliente">Cliente</option>
-      <option value="jugador">Jugador</option>
-      <option value="admin">Admin</option>
-    </select>
-    <input id="passwordInput" type="password" placeholder="Contraseña (solo jugador/admin)" style="display:none;" autocomplete="off" />
-    <button id="btnEnter">Entrar al chat</button>
+  <div id="chat-container">
+    <h2>ULTIMATEFUT CHAT</h2>
+    <div id="messages"></div>
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
+      <button>Enviar</button>
+    </form>
   </div>
-
-  <ul id="chat" style="display:none;"></ul>
-
-  <input id="msg" placeholder="Escribe tu mensaje..." autofocus style="display:none;" autocomplete="off"/>
-  <button id="btnSend" style="display:none;">Enviar</button>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+    const id = params.get("id");
 
-    const chatIdInput = document.getElementById('chatIdInput');
-    const userTypeSelect = document.getElementById('userTypeSelect');
-    const passwordInput = document.getElementById('passwordInput');
-    const btnEnter = document.getElementById('btnEnter');
-    const chatUl = document.getElementById('chat');
-    const msgInput = document.getElementById('msg');
-    const btnSend = document.getElementById('btnSend');
-    const loginForm = document.getElementById('loginForm');
+    socket.emit("joinChat", { type, id });
 
-    let chatId = null;
-    let userType = null;
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const messages = document.getElementById("messages");
 
-    userTypeSelect.addEventListener('change', () => {
-      if (userTypeSelect.value === 'jugador' || userTypeSelect.value === 'admin') {
-        passwordInput.style.display = 'block';
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (input.value) {
+        socket.emit("sendMessage", input.value);
+        input.value = "";
+      }
+    });
+
+    socket.on("receiveMessage", (msg) => {
+      const item = document.createElement("div");
+      item.classList.add("message");
+
+      if (msg.autor.toLowerCase().includes("cliente")) {
+        item.classList.add("cliente");
+      } else if (msg.autor.toLowerCase().includes("jugador")) {
+        item.classList.add("jugador");
       } else {
-        passwordInput.style.display = 'none';
-        passwordInput.value = '';
+        item.classList.add("admin");
       }
+
+      item.innerHTML = <strong>${msg.autor}</strong><br>${msg.texto}<small>${new Date(msg.hora).toLocaleString()}</small>;
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
     });
-
-    btnEnter.addEventListener('click', () => {
-      chatId = chatIdInput.value.trim();
-      userType = userTypeSelect.value;
-      const password = passwordInput.value;
-
-      if (!chatId) return alert('Debes introducir un ID del pedido.');
-      if (!['cliente', 'jugador', 'admin'].includes(userType)) return alert('Selecciona un rol válido.');
-
-      // Enviar joinChat con password si aplica
-      socket.emit('joinChat', { type: userType, id: chatId, password });
-
-      socket.once('errorMsg', (msg) => {
-        alert(msg);
-      });
-
-      socket.once('joined', (data) => {
-        if (data.success) {
-          loginForm.style.display = 'none';
-          chatUl.style.display = 'flex';
-          msgInput.style.display = 'inline-block';
-          btnSend.style.display = 'inline-block';
-          cargarHistorial();
-        }
-      });
-    });
-
-    function mostrarMensaje(msg) {
-      const li = document.createElement('li');
-      let clase = 'cliente';
-      if (msg.autor.includes('Jugador')) clase = 'jugador';
-      if (msg.autor === 'Admin') clase = 'admin';
-
-      li.className = clase;
-      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleString()}</div>`;
-      chatUl.appendChild(li);
-      chatUl.scrollTop = chatUl.scrollHeight;
-    }
-
-    async function cargarHistorial() {
-      try {
-        const res = await fetch(`/chat/${chatId}`);
-        const mensajes = await res.json();
-        mensajes.forEach(mostrarMensaje);
-      } catch (err) {
-        alert('Error cargando historial');
-      }
-    }
-
-    socket.on('receiveMessage', mostrarMensaje);
-
-    btnSend.addEventListener('click', () => {
-      enviar();
-    });
-
-    msgInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') enviar();
-    });
-
-    function enviar() {
-      const msg = msgInput.value.trim();
-      if (!msg) return;
-      socket.emit('sendMessage', msg);
-      msgInput.value = '';
-    }
   </script>
 </body>
 </html>
-
