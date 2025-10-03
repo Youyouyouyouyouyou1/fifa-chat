@@ -130,7 +130,6 @@
     #msg::placeholder {
       color: rgba(255,255,255,0.6);
     }
-
   </style>
 </head>
 <body>
@@ -218,20 +217,22 @@
       }
     }
 
+    // Request notification permission
     if (Notification.permission !== "granted") {
-  Notification.requestPermission();
-}
+      Notification.requestPermission();
+    }
 
-socket.on('receiveMessage', (msg) => {
-  mostrarMensaje(msg);
+    // Receive messages + show notification
+    socket.on('receiveMessage', (msg) => {
+      showMessage(msg);
 
-  if (Notification.permission === "granted") {
-    new Notification("💬 New message", {
-      body: `${msg.autor}: ${msg.texto}`,
-      icon: "/icon.jpg" // use .jpg instead of .png
+      if (Notification.permission === "granted") {
+        new Notification("💬 New message", {
+          body: `${msg.author}: ${msg.text}`,
+          icon: "/icon.jpg" // must exist in /public
+        });
+      }
     });
-  }
-});
 
     btnSend.addEventListener('click', send);
     msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && send());
@@ -245,4 +246,3 @@ socket.on('receiveMessage', (msg) => {
   </script>
 </body>
 </html>
-
