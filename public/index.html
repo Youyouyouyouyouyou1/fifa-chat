@@ -218,7 +218,20 @@
       }
     }
 
-    socket.on('receiveMessage', showMessage);
+    if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+socket.on('receiveMessage', (msg) => {
+  mostrarMensaje(msg);
+
+  if (Notification.permission === "granted") {
+    new Notification("💬 New message", {
+      body: `${msg.autor}: ${msg.texto}`,
+      icon: "/icon.jpg" // use .jpg instead of .png
+    });
+  }
+});
 
     btnSend.addEventListener('click', send);
     msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && send());
@@ -232,3 +245,4 @@
   </script>
 </body>
 </html>
+
