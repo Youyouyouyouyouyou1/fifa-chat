@@ -7,69 +7,69 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Conecta a MongoDB Atlas (pon tu URI aquí)
+// Connect to MongoDB Atlas (put your URI here)
 mongoose.connect('mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ Conectado a MongoDB Atlas'))
-.catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+.then(() => console.log('✅ Connected to MongoDB Atlas'))
+.catch(err => console.error('❌ Error connecting to MongoDB:', err));
 
-// Esquema y modelo de mensajes
-const mensajeSchema = new mongoose.Schema({
+// Schema and model for messages
+const messageSchema = new mongoose.Schema({
   chatId: String,
-  autor: String,
-  texto: String,
-  hora: Date,
+  author: String,
+  text: String,
+  time: Date,
 });
-const Mensaje = mongoose.model('Mensaje', mensajeSchema);
+const Message = mongoose.model('Message', messageSchema);
 
 app.use(express.static(__dirname + '/public'));
 
-// Endpoint para obtener historial de chat (ruta antigua)
+// Endpoint to get chat history (old route)
 app.get('/chat/:chatId', async (req, res) => {
   try {
-    const mensajes = await Mensaje.find({ chatId: req.params.chatId }).sort({ hora: 1 });
-    res.json(mensajes);
+    const messages = await Message.find({ chatId: req.params.chatId }).sort({ time: 1 });
+    res.json(messages);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener mensajes' });
+    res.status(500).json({ error: 'Error fetching messages' });
   }
 });
 
-// Nueva ruta para admin.html: Obtener mensajes en formato JSON mediante query ?chatId=
-app.get('/api/mensajes', async (req, res) => {
+// New route for admin.html: Get messages in JSON format with ?chatId=
+app.get('/api/messages', async (req, res) => {
   const chatId = req.query.chatId;
-  if (!chatId) return res.status(400).send({ error: 'Falta chatId' });
+  if (!chatId) return res.status(400).send({ error: 'Missing chatId' });
 
   try {
-    const mensajes = await Mensaje.find({ chatId }).sort({ hora: 1 });
-    res.json(mensajes);
+    const messages = await Message.find({ chatId }).sort({ time: 1 });
+    res.json(messages);
   } catch (err) {
-    res.status(500).send({ error: 'Error al obtener mensajes' });
+    res.status(500).send({ error: 'Error fetching messages' });
   }
 });
 
-// Contraseñas para roles que las requieren
+// Passwords for roles that require them
 const passwords = {
-  jugador: 'JAHEUhdjjdbc234hd',
+  player: 'JAHEUhdjjdbc234hd',
   admin: 'somoslosputosamos23dhf1A',
 };
 
 io.on('connection', (socket) => {
-  console.log('🔌 Cliente conectado:', socket.id);
+  console.log('🔌 Client connected:', socket.id);
 
   let userType = null;
   let chatId = null;
 
   socket.on('joinChat', ({ type, id, password }) => {
     if (!type || !id) {
-      socket.emit('errorMsg', 'Falta tipo de usuario o chatId');
+      socket.emit('errorMsg', '⚠️ Missing user type or chatId');
       return;
     }
 
-    // Validar contraseña para jugador y admin
-    if ((type === 'jugador' || type === 'admin') && passwords[type] !== password) {
-      socket.emit('errorMsg', 'Contraseña incorrecta');
+    // Validate password for player and admin
+    if ((type === 'player' || type === 'admin') && passwords[type] !== password) {
+      socket.emit('errorMsg', '❌ Incorrect password');
       return;
     }
 
@@ -77,43 +77,41 @@ io.on('connection', (socket) => {
     chatId = id;
     socket.join(chatId);
 
-    console.log(`➡️ Usuario se une: tipo=${userType}, chatId=${chatId}`);
-    socket.emit('joined', { success: true });
+    console.log(`➡️ User joined: type=${userType}, chatId=${chatId}`);
+    socket.emit('joined', { success: true, msg: '✅ You joined the chat' });
   });
 
   socket.on('sendMessage', async (msg) => {
     if (!chatId || !userType) return;
 
     const alias =
-      userType === 'cliente' ? 'Cliente' :
-      userType === 'jugador' ? 'Jugador' :
+      userType === 'client' ? 'Client' :
+      userType === 'player' ? 'Player' :
       'Admin';
 
     const message = {
       chatId,
-      autor: alias,
-      texto: msg,
-      hora: new Date(),
+      author: alias,
+      text: msg,
+      time: new Date(),
     };
 
     try {
-      const nuevoMensaje = new Mensaje(message);
-      await nuevoMensaje.save();
-      console.log('💾 Mensaje guardado en MongoDB');
+      const newMessage = new Message(message);
+      await newMessage.save();
+      console.log('💾 Message saved to MongoDB');
     } catch (err) {
-      console.error('❌ Error guardando mensaje:', err);
+      console.error('❌ Error saving message:', err);
     }
 
     io.to(chatId).emit('receiveMessage', message);
   });
 
   socket.on('disconnect', () => {
-    console.log('❌ Cliente desconectado:', socket.id);
+    console.log('❌ Client disconnected:', socket.id);
   });
 });
 
 server.listen(3000, '0.0.0.0', () => {
-  console.log('🚀 Servidor en http://localhost:3000');
+  console.log('🚀 Server running at http://localhost:3000');
 });
-
-
