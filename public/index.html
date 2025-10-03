@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>ULTIMATEFUTSERVICE CHAT</title>
@@ -91,13 +91,13 @@
       word-wrap: break-word;
     }
 
-    .cliente {
+    .client {
       background: #00ffea;
       color: #000;
       align-self: flex-start;
     }
 
-    .jugador {
+    .player {
       background: #fff;
       color: #000;
       align-self: flex-end;
@@ -109,7 +109,7 @@
       align-self: flex-end;
     }
 
-    .hora {
+    .time {
       font-size: 0.8em;
       color: rgba(255,255,255,0.7);
       margin-top: 5px;
@@ -130,28 +130,27 @@
     #msg::placeholder {
       color: rgba(255,255,255,0.6);
     }
-
   </style>
 </head>
 <body>
-  <h2>💬 Chat ULTIMATEFUTSERVICE</h2>
+  <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
   <div id="loginForm">
-    <input id="chatIdInput" placeholder="Introduce ID del pedido" autocomplete="off" />
+    <input id="chatIdInput" placeholder="Enter order ID" autocomplete="off" />
     <select id="userTypeSelect">
-      <option value="">Selecciona tu rol</option>
-      <option value="cliente">Cliente</option>
-      <option value="jugador">Jugador</option>
+      <option value="">Select your role</option>
+      <option value="client">Client</option>
+      <option value="player">Player</option>
       <option value="admin">Admin</option>
     </select>
-    <input id="passwordInput" type="password" placeholder="Contraseña (solo jugador/admin)" style="display:none;" autocomplete="off" />
-    <button id="btnEnter">Entrar al chat</button>
+    <input id="passwordInput" type="password" placeholder="Password (player/admin only)" style="display:none;" autocomplete="off" />
+    <button id="btnEnter">Enter chat</button>
   </div>
 
   <ul id="chat" style="display:none;"></ul>
 
-  <input id="msg" placeholder="Escribe tu mensaje..." autofocus style="display:none;" autocomplete="off"/>
-  <button id="btnSend" style="display:none;">Enviar</button>
+  <input id="msg" placeholder="Type your message..." autofocus style="display:none;" autocomplete="off"/>
+  <button id="btnSend" style="display:none;">Send</button>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -170,7 +169,7 @@
     let userType = null;
 
     userTypeSelect.addEventListener('change', () => {
-      passwordInput.style.display = (userTypeSelect.value === 'jugador' || userTypeSelect.value === 'admin') ? 'block' : 'none';
+      passwordInput.style.display = (userTypeSelect.value === 'player' || userTypeSelect.value === 'admin') ? 'block' : 'none';
     });
 
     btnEnter.addEventListener('click', () => {
@@ -178,8 +177,8 @@
       userType = userTypeSelect.value;
       const password = passwordInput.value;
 
-      if (!chatId) return alert('Debes introducir un ID del pedido.');
-      if (!['cliente', 'jugador', 'admin'].includes(userType)) return alert('Selecciona un rol válido.');
+      if (!chatId) return alert('You must enter an order ID.');
+      if (!['client', 'player', 'admin'].includes(userType)) return alert('Please select a valid role.');
 
       socket.emit('joinChat', { type: userType, id: chatId, password });
 
@@ -191,39 +190,39 @@
           chatUl.style.display = 'flex';
           msgInput.style.display = 'inline-block';
           btnSend.style.display = 'inline-block';
-          cargarHistorial();
+          loadHistory();
         }
       });
     });
 
-    function mostrarMensaje(msg) {
+    function showMessage(msg) {
       const li = document.createElement('li');
-      let clase = 'cliente';
-      if (msg.autor.includes('Jugador')) clase = 'jugador';
-      if (msg.autor === 'Admin') clase = 'admin';
+      let cls = 'client';
+      if (msg.autor.includes('Player')) cls = 'player';
+      if (msg.autor === 'Admin') cls = 'admin';
 
-      li.className = clase;
-      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="hora">${new Date(msg.hora).toLocaleString()}</div>`;
+      li.className = cls;
+      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="time">${new Date(msg.hora).toLocaleString()}</div>`;
       chatUl.appendChild(li);
       chatUl.scrollTop = chatUl.scrollHeight;
     }
 
-    async function cargarHistorial() {
+    async function loadHistory() {
       try {
         const res = await fetch(`/chat/${chatId}`);
-        const mensajes = await res.json();
-        mensajes.forEach(mostrarMensaje);
+        const messages = await res.json();
+        messages.forEach(showMessage);
       } catch {
-        alert('Error cargando historial');
+        alert('Error loading history');
       }
     }
 
-    socket.on('receiveMessage', mostrarMensaje);
+    socket.on('receiveMessage', showMessage);
 
-    btnSend.addEventListener('click', enviar);
-    msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && enviar());
+    btnSend.addEventListener('click', send);
+    msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && send());
 
-    function enviar() {
+    function send() {
       const msg = msgInput.value.trim();
       if (!msg) return;
       socket.emit('sendMessage', msg);
@@ -232,3 +231,4 @@
   </script>
 </body>
 </html>
+
