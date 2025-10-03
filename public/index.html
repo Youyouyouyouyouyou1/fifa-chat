@@ -130,21 +130,22 @@
     #msg::placeholder {
       color: rgba(255,255,255,0.6);
     }
+
   </style>
 </head>
 <body>
   <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
   <div id="loginForm">
-    <input id="chatIdInput" placeholder="Enter order ID" autocomplete="off" />
+    <input id="chatIdInput" placeholder="Enter Order ID" autocomplete="off" />
     <select id="userTypeSelect">
       <option value="">Select your role</option>
       <option value="client">Client</option>
       <option value="player">Player</option>
       <option value="admin">Admin</option>
     </select>
-    <input id="passwordInput" type="password" placeholder="Password (player/admin only)" style="display:none;" autocomplete="off" />
-    <button id="btnEnter">Enter chat</button>
+    <input id="passwordInput" type="password" placeholder="Password (only player/admin)" style="display:none;" autocomplete="off" />
+    <button id="btnEnter">Enter Chat</button>
   </div>
 
   <ul id="chat" style="display:none;"></ul>
@@ -177,7 +178,7 @@
       userType = userTypeSelect.value;
       const password = passwordInput.value;
 
-      if (!chatId) return alert('You must enter an order ID.');
+      if (!chatId) return alert('You must enter an Order ID.');
       if (!['client', 'player', 'admin'].includes(userType)) return alert('Please select a valid role.');
 
       socket.emit('joinChat', { type: userType, id: chatId, password });
@@ -198,11 +199,11 @@
     function showMessage(msg) {
       const li = document.createElement('li');
       let cls = 'client';
-      if (msg.autor.includes('Player')) cls = 'player';
-      if (msg.autor === 'Admin') cls = 'admin';
+      if (msg.author.includes('Player')) cls = 'player';
+      if (msg.author === 'Admin') cls = 'admin';
 
       li.className = cls;
-      li.innerHTML = `<strong>${msg.autor}</strong><br>${msg.texto}<div class="time">${new Date(msg.hora).toLocaleString()}</div>`;
+      li.innerHTML = `<strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
       chatUl.appendChild(li);
       chatUl.scrollTop = chatUl.scrollHeight;
     }
@@ -231,4 +232,3 @@
   </script>
 </body>
 </html>
-
