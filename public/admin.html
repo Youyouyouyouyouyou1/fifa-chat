@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Modo Admin - Chat</title>
+  <title>Admin Mode - Chat</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,7 +15,7 @@
       color: #075e54;
     }
 
-    #busqueda {
+    #search {
       margin-bottom: 1rem;
     }
 
@@ -39,24 +39,24 @@
       position: relative;
     }
 
-    .cliente {
+    .client {
       background: #dcf8c6;
       align-self: flex-start;
     }
 
-    .jugador {
+    .player {
       background: #ffffff;
       align-self: flex-end;
       margin-left: auto;
     }
 
-    .hora {
+    .time {
       font-size: 0.8em;
       color: gray;
       margin-top: 5px;
     }
 
-    #mensajes {
+    #messages {
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -64,50 +64,51 @@
   </style>
 </head>
 <body>
-  <h2>Chat admin</h2>
+  <h2>Admin Chat</h2>
 
-  <input type="text" id="filtro" placeholder="Buscar por texto o fecha (aaaa-mm-dd)" oninput="filtrarMensajes()" />
+  <input type="text" id="filter" placeholder="Search by text or date (yyyy-mm-dd)" oninput="filterMessages()" />
 
-  <ul id="mensajes"></ul>
+  <ul id="messages"></ul>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const chatId = urlParams.get('chatId');
 
     if (!chatId) {
-      document.body.innerHTML = '<h3>Error: falta ?chatId= en la URL</h3>';
-      throw new Error('Falta chatId');
+      document.body.innerHTML = '<h3>Error: missing ?chatId= in the URL</h3>';
+      throw new Error('Missing chatId');
     }
 
     fetch(`/api/mensajes?chatId=${chatId}`)
       .then(res => res.json())
-      .then(data => mostrarMensajes(data))
-      .catch(() => alert('Error al cargar mensajes'));
+      .then(data => showMessages(data))
+      .catch(() => alert('Error loading messages'));
 
-    let todos = [];
+    let allMessages = [];
 
-    function mostrarMensajes(mensajes) {
-      todos = mensajes;
-      const contenedor = document.getElementById('mensajes');
-      contenedor.innerHTML = '';
+    function showMessages(messages) {
+      allMessages = messages;
+      const container = document.getElementById('messages');
+      container.innerHTML = '';
 
-      mensajes.forEach(m => {
+      messages.forEach(m => {
         const li = document.createElement('li');
-        li.className = m.autor.includes('Cliente') ? 'cliente' : 'jugador';
-        li.innerHTML = `<strong>${m.autor}</strong><br>${m.texto}<div class="hora">${new Date(m.hora).toLocaleString()}</div>`;
-        contenedor.appendChild(li);
+        li.className = m.author.includes('Client') ? 'client' : 'player';
+        li.innerHTML = `<strong>${m.author}</strong><br>${m.text}<div class="time">${new Date(m.time).toLocaleString()}</div>`;
+        container.appendChild(li);
       });
     }
 
-    function filtrarMensajes() {
-      const texto = document.getElementById('filtro').value.toLowerCase();
-      const filtrados = todos.filter(m =>
-        m.texto.toLowerCase().includes(texto) ||
-        m.hora.slice(0, 10).includes(texto)
+    function filterMessages() {
+      const text = document.getElementById('filter').value.toLowerCase();
+      const filtered = allMessages.filter(m =>
+        m.text.toLowerCase().includes(text) ||
+        m.time.slice(0, 10).includes(text)
       );
-      mostrarMensajes(filtrados);
+      showMessages(filtered);
     }
   </script>
 </body>
 </html>
+
 
