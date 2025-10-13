@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ULTIMATEFUTSERVICE CHAT</title>
   <style>
+    :root {
+      --primary: #00ffea;
+      --bg-dark: #0a0f1f;
+      --bg-light: #1a2238;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(145deg, #0a0f1f, #1a2238);
+      background: linear-gradient(145deg, var(--bg-dark), var(--bg-light));
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -18,8 +25,9 @@
 
     h2 {
       text-align: center;
-      margin-bottom: 2rem;
-      color: #00ffea;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+      font-size: 1.8rem;
     }
 
     #loginForm {
@@ -35,7 +43,7 @@
     }
 
     input, select, button {
-      padding: 10px;
+      padding: 12px;
       font-size: 1rem;
       border-radius: 8px;
       border: none;
@@ -45,6 +53,7 @@
     input, select {
       background: rgba(255,255,255,0.1);
       color: white;
+      width: 100%;
     }
 
     input::placeholder {
@@ -57,7 +66,7 @@
     }
 
     button {
-      background: #00ffea;
+      background: var(--primary);
       color: #000;
       font-weight: bold;
       cursor: pointer;
@@ -72,7 +81,7 @@
     #chat {
       list-style: none;
       padding: 1rem;
-      max-height: 500px;
+      flex: 1;
       overflow-y: auto;
       margin: 1rem auto;
       background: rgba(0, 0, 0, 0.6);
@@ -87,7 +96,7 @@
     #chat li {
       padding: 10px;
       border-radius: 12px;
-      max-width: 70%;
+      max-width: 80%;
       word-wrap: break-word;
     }
 
@@ -115,20 +124,68 @@
       margin-top: 5px;
     }
 
-    #msg, #btnSend {
-      max-width: 700px;
+    #chatForm {
+      display: none;
       width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
     }
 
     #msg {
       background: rgba(255,255,255,0.1);
       color: white;
       padding: 10px;
-      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      flex: 1;
     }
 
     #msg::placeholder {
       color: rgba(255,255,255,0.6);
+    }
+
+    #btnSend {
+      background: var(--primary);
+      color: #000;
+      font-weight: bold;
+      border-radius: 8px;
+      padding: 10px 14px;
+      flex-shrink: 0;
+    }
+
+    /* ✅ Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 0.8rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      #loginForm {
+        padding: 1.2rem;
+        gap: 0.8rem;
+      }
+
+      input, select, button {
+        font-size: 1rem;
+      }
+
+      #chat {
+        max-height: 65vh;
+      }
+
+      #chatForm {
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      #msg, #btnSend {
+        width: 100%;
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -149,8 +206,10 @@
 
   <ul id="chat" style="display:none;"></ul>
 
-  <input id="msg" placeholder="Type your message..." autofocus style="display:none;" autocomplete="off"/>
-  <button id="btnSend" style="display:none;">Send</button>
+  <form id="chatForm" style="display:none;">
+    <input id="msg" placeholder="Type your message..." autocomplete="off" />
+    <button id="btnSend" type="submit">Send</button>
+  </form>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -164,6 +223,7 @@
     const msgInput = document.getElementById('msg');
     const btnSend = document.getElementById('btnSend');
     const loginForm = document.getElementById('loginForm');
+    const chatForm = document.getElementById('chatForm');
 
     let chatId = null;
     let userType = null;
@@ -188,8 +248,7 @@
         if (data.success) {
           loginForm.style.display = 'none';
           chatUl.style.display = 'flex';
-          msgInput.style.display = 'inline-block';
-          btnSend.style.display = 'inline-block';
+          chatForm.style.display = 'flex';
           loadHistory();
         }
       });
@@ -200,7 +259,6 @@
       let cls = 'client';
       if (msg.author.includes('Player')) cls = 'player';
       if (msg.author === 'Admin') cls = 'admin';
-
       li.className = cls;
       li.innerHTML = `<strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
       chatUl.appendChild(li);
@@ -217,31 +275,34 @@
       }
     }
 
-    // Request notification permission
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
     }
 
-    // Receive messages + show notification
     socket.on('receiveMessage', (msg) => {
       showMessage(msg);
-
       if (Notification.permission === "granted") {
         new Notification("💬 New message", {
           body: `${msg.author}: ${msg.text}`,
-          icon: "/icon.jpg" // must exist in /public
+          icon: "/icon.jpg"
         });
       }
     });
 
-    btnSend.addEventListener('click', send);
-    msgInput.addEventListener('keydown', (e) => e.key === 'Enter' && send());
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      send();
+    });
 
     function send() {
       const msg = msgInput.value.trim();
       if (!msg) return;
       socket.emit('sendMessage', msg);
       msgInput.value = '';
+      msgInput.focus();
+
+      // ✅ Vibración corta en móviles
+      if (navigator.vibrate) navigator.vibrate(30);
     }
   </script>
 </body>
