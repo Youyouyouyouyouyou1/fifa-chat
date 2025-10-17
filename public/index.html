@@ -213,7 +213,8 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    // Use transports option to allow fallback to polling on flaky mobile networks
+    const socket = io({ transports: ['websocket', 'polling'] });
 
     const chatIdInput = document.getElementById('chatIdInput');
     const userTypeSelect = document.getElementById('userTypeSelect');
@@ -225,8 +226,20 @@
     const loginForm = document.getElementById('loginForm');
     const chatForm = document.getElementById('chatForm');
 
-    let chatId = null;
-    let userType = null;
+    // keep session in localStorage so we can rejoin after reconnects
+    let chatId = localStorage.getItem('ufs_chatId') || null;
+    let userType = localStorage.getItem('ufs_userType') || null;
+    let savedPassword = localStorage.getItem('ufs_password') || '';
+
+    // if user already had a session, attempt rejoin on load/connect
+    if (chatId && userType) {
+      // populate fields (optional)
+      chatIdInput.value = chatId;
+      userTypeSelect.value = userType;
+      passwordInput.value = savedPassword;
+      // try to rejoin
+      joinChat(chatId, userType, savedPassword);
+    }
 
     userTypeSelect.addEventListener('change', () => {
       passwordInput.style.display = (userTypeSelect.value === 'player' || userTypeSelect.value === 'admin') ? 'block' : 'none';
@@ -235,29 +248,55 @@
     btnEnter.addEventListener('click', () => {
       chatId = chatIdInput.value.trim();
       userType = userTypeSelect.value;
-      const password = passwordInput.value;
+      const password = passwordInput.value || '';
 
       if (!chatId) return alert('You must enter an Order ID.');
       if (!['client', 'player', 'admin'].includes(userType)) return alert('Please select a valid role.');
 
-      socket.emit('joinChat', { type: userType, id: chatId, password });
+      // save for reconnection
+      localStorage.setItem('ufs_chatId', chatId);
+      localStorage.setItem('ufs_userType', userType);
+      localStorage.setItem('ufs_password', password);
 
-      socket.once('errorMsg', (msg) => alert(msg));
+      // Request notification permission on explicit action (less likely to be blocked)
+      if (Notification && Notification.permission !== "granted") {
+        Notification.requestPermission().catch(()=>{/* ignore */});
+      }
+
+      joinChat(chatId, userType, password);
+    });
+
+    function joinChat(id, type, password) {
+      // emit join
+      socket.emit('joinChat', { type, id, password });
+
+      // clear any previous listeners to avoid duplicates
+      socket.off('errorMsg');
+      socket.off('joined');
+
+      socket.once('errorMsg', (msg) => {
+        alert(msg);
+        // if error (e.g. wrong password) remove saved session to avoid infinite rejoin attempts
+        localStorage.removeItem('ufs_chatId');
+        localStorage.removeItem('ufs_userType');
+        localStorage.removeItem('ufs_password');
+      });
 
       socket.once('joined', (data) => {
         if (data.success) {
           loginForm.style.display = 'none';
           chatUl.style.display = 'flex';
           chatForm.style.display = 'flex';
+          // load history fresh
           loadHistory();
         }
       });
-    });
+    }
 
     function showMessage(msg) {
       const li = document.createElement('li');
       let cls = 'client';
-      if (msg.author.includes('Player')) cls = 'player';
+      if (msg.author && msg.author.includes('Player')) cls = 'player';
       if (msg.author === 'Admin') cls = 'admin';
       li.className = cls;
       li.innerHTML = `<strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
@@ -266,29 +305,58 @@
     }
 
     async function loadHistory() {
+      if (!chatId) return;
       try {
-        const res = await fetch(`/chat/${chatId}`);
+        const res = await fetch(`/chat/${encodeURIComponent(chatId)}`);
         const messages = await res.json();
+        chatUl.innerHTML = ''; // fresh
         messages.forEach(showMessage);
-      } catch {
+      } catch (err) {
+        console.error('Error loading history', err);
         alert('Error loading history');
       }
     }
 
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-
+    // receive messages
     socket.on('receiveMessage', (msg) => {
       showMessage(msg);
-      if (Notification.permission === "granted") {
-        new Notification("💬 New message", {
-          body: `${msg.author}: ${msg.text}`,
-          icon: "/icon.jpg"
-        });
+      // show notification only if permission granted
+      try {
+        if (Notification && Notification.permission === "granted") {
+          new Notification("💬 New message", {
+            body: `${msg.author}: ${msg.text}`,
+            icon: "/icon.jpg"
+          });
+        }
+      } catch (e) {
+        // some browsers require construction in user gesture; swallow errors
+        console.warn('Notification error', e);
       }
     });
 
+    // handle reconnects: if socket reconnects, rejoin room automatically
+    socket.on('connect', () => {
+      console.log('socket connected', socket.id);
+      // if we have stored session, rejoin
+      const storedId = localStorage.getItem('ufs_chatId');
+      const storedType = localStorage.getItem('ufs_userType');
+      const storedPass = localStorage.getItem('ufs_password') || '';
+      if (storedId && storedType) {
+        console.log('Rejoining chat after connect...');
+        joinChat(storedId, storedType, storedPass);
+      }
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('Socket connect_error', err);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // do not clear localStorage here — we will try to rejoin on next connect
+    });
+
+    // submit handler (works well on iPhone)
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       send();
@@ -297,11 +365,17 @@
     function send() {
       const msg = msgInput.value.trim();
       if (!msg) return;
+      // ensure socket is connected; if not, it will auto-reconnect and we rejoin on connect
+      if (!socket.connected) {
+        // inform the user but still queue attempt (socket.io buffers emits)
+        console.warn('Socket not connected, attempting to reconnect and will send shortly');
+        socket.connect();
+      }
       socket.emit('sendMessage', msg);
       msgInput.value = '';
       msgInput.focus();
 
-      // ✅ Vibración corta en móviles
+      // short vibration on mobile
       if (navigator.vibrate) navigator.vibrate(30);
     }
   </script>
