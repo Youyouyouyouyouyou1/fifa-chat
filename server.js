@@ -5,7 +5,18 @@ const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+
+// Socket.IO options to improve mobile reliability
+const io = socketIo(server, {
+  transports: ['websocket', 'polling'],
+  // tune ping/pong to be more tolerant with slow mobile networks
+  pingInterval: 20000,
+  pingTimeout: 60000,
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
 
 // Connect to MongoDB Atlas (put your URI here)
 mongoose.connect('mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
@@ -107,8 +118,12 @@ io.on('connection', (socket) => {
     io.to(chatId).emit('receiveMessage', message);
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ Client disconnected:', socket.id);
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Client disconnected:', socket.id, 'reason:', reason);
+  });
+
+  socket.on('reconnect_attempt', (attempt) => {
+    console.log(`🔁 Reconnect attempt #${attempt} for socket ${socket.id}`);
   });
 });
 
