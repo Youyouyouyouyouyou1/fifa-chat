@@ -7,23 +7,9 @@
   <style>
     :root { --primary:#00ffea; --bg-dark:#0a0f1f; --bg-light:#1a2238; }
     body{font-family:Arial,sans-serif;background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;margin:0;padding:1rem;}
-    h2{color:var(--primary);margin-bottom:0.5rem;font-size:1.8rem;}
-    #exitBtn {
-      display: none;
-      background: #ff4444;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 1rem;
-      transition: background 0.3s ease, transform 0.2s ease;
-    }
-    #exitBtn:hover {
-      background: #ff2222;
-      transform: scale(1.03);
-    }
+    h2{color:var(--primary);margin-bottom:0.5rem;font-size:1.8rem;text-align:center;}
+    #exitBtn{background:#ff4444;color:white;font-weight:bold;border:none;padding:10px 16px;border-radius:8px;margin-bottom:1rem;cursor:pointer;transition:background 0.3s ease,transform 0.2s ease;}
+    #exitBtn:hover{background:#ff2222;transform:scale(1.05);}
     #loginForm{background:rgba(0,0,0,.6);padding:2rem;border-radius:15px;box-shadow:0 4px 10px rgba(0,0,0,.5);width:100%;max-width:400px;display:flex;flex-direction:column;gap:1rem;}
     input,select,button{padding:12px;font-size:1rem;border-radius:8px;border:none;outline:none;}
     input,select{background:rgba(255,255,255,.1);color:white;width:100%;}
@@ -45,7 +31,7 @@
 </head>
 <body>
   <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-  <button id="exitBtn">Exit Chat</button>
+  <button id="exitBtn" style="display:none;">Exit Chat</button>
 
   <div id="loginForm">
     <input id="chatIdInput" placeholder="Enter Order ID" autocomplete="off" />
@@ -69,6 +55,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io({ transports: ['websocket','polling'] });
+
     const chatIdInput = document.getElementById('chatIdInput');
     const userTypeSelect = document.getElementById('userTypeSelect');
     const passwordInput = document.getElementById('passwordInput');
@@ -79,12 +66,20 @@
     const chatForm = document.getElementById('chatForm');
     const exitBtn = document.getElementById('exitBtn');
 
-    let chatId = null, userType = null, password = null, joined = false;
+    let chatId = null;
+    let userType = null;
+    let password = null;
+    let joined = false;
 
+    // restore session
     const saved = JSON.parse(localStorage.getItem('ufs_session') || 'null');
     if (saved && saved.chatId && saved.userType) {
-      chatId = saved.chatId; userType = saved.userType; password = saved.password || '';
-      chatIdInput.value = chatId; userTypeSelect.value = userType; passwordInput.value = password;
+      chatId = saved.chatId;
+      userType = saved.userType;
+      password = saved.password || '';
+      chatIdInput.value = chatId;
+      userTypeSelect.value = userType;
+      passwordInput.value = password;
     }
 
     userTypeSelect.addEventListener('change', () => {
@@ -99,17 +94,18 @@
       joined = true;
     }
 
-    function hideChatUI() {
+    function showLoginUI() {
       loginForm.style.display = 'flex';
       chatUl.style.display = 'none';
       chatForm.style.display = 'none';
       exitBtn.style.display = 'none';
-      chatUl.innerHTML = '';
       joined = false;
     }
 
     function doJoin(id, type, pass) {
-      socket.off('joined'); socket.off('errorMsg');
+      socket.off('joined');
+      socket.off('errorMsg');
+
       socket.once('joined', (data) => {
         if (data && data.success) {
           localStorage.setItem('ufs_session', JSON.stringify({ chatId: id, userType: type, password: pass || '' }));
@@ -117,10 +113,12 @@
           loadHistory();
         }
       });
+
       socket.once('errorMsg', (msg) => {
         alert(msg);
         localStorage.removeItem('ufs_session');
       });
+
       socket.emit('joinChat', { type, id, password: pass });
     }
 
@@ -128,15 +126,34 @@
       chatId = chatIdInput.value.trim();
       userType = userTypeSelect.value;
       password = passwordInput.value || '';
+
       if (!chatId) return alert('You must enter an Order ID.');
       if (!['client','player','admin'].includes(userType)) return alert('Please select a valid role.');
-      if (window.Notification && Notification.permission !== "granted") Notification.requestPermission().catch(()=>{});
+
+      if (window.Notification && Notification.permission !== "granted") {
+        Notification.requestPermission().catch(()=>{});
+      }
+
       doJoin(chatId, userType, password);
+    });
+
+    exitBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to exit this chat?')) {
+        localStorage.removeItem('ufs_session');
+        socket.disconnect();
+        chatUl.innerHTML = '';
+        showLoginUI();
+        chatIdInput.value = '';
+        userTypeSelect.value = '';
+        passwordInput.value = '';
+      }
     });
 
     socket.on('connect', () => {
       const s = JSON.parse(localStorage.getItem('ufs_session') || 'null');
-      if (s && s.chatId && s.userType && !joined) doJoin(s.chatId, s.userType, s.password || '');
+      if (s && s.chatId && s.userType && !joined) {
+        doJoin(s.chatId, s.userType, s.password || '');
+      }
     });
 
     function showMessage(msg) {
@@ -159,15 +176,15 @@
         messages.forEach(showMessage);
       } catch (err) {
         console.error('Error loading history', err);
-        alert('Error loading history');
       }
     }
 
     socket.on('receiveMessage', (msg) => {
       showMessage(msg);
       try {
-        if (window.Notification && Notification.permission === "granted")
-          new Notification("💬 New message", { body: `${msg.author}: ${msg.text}`, icon: "/icon.jpg" });
+        if (window.Notification && Notification.permission === "granted") {
+          new Notification("💬 New message", { body: `${msg.author}: ${msg.text}` });
+        }
       } catch(e) {}
     });
 
@@ -175,18 +192,17 @@
       e.preventDefault();
       const m = msgInput.value.trim();
       if (!m) return;
-      if (!socket.connected) { alert('Reconnecting...'); socket.connect(); return; }
+
+      if (!socket.connected) {
+        socket.connect();
+        alert('Reconnecting, please try again in a second.');
+        return;
+      }
+
       socket.emit('sendMessage', m);
       msgInput.value = '';
       msgInput.focus();
       if (navigator.vibrate) navigator.vibrate(30);
-    });
-
-    // ✅ Exit Chat logic
-    exitBtn.addEventListener('click', () => {
-      localStorage.removeItem('ufs_session');
-      socket.disconnect();
-      hideChatUI();
     });
   </script>
 </body>
