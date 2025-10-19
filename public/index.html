@@ -8,8 +8,12 @@
     :root { --primary:#00ffea; --bg-dark:#0a0f1f; --bg-light:#1a2238; }
     body{font-family:Arial,sans-serif;background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;margin:0;padding:1rem;}
     h2{color:var(--primary);margin-bottom:0.5rem;font-size:1.8rem;text-align:center;}
-    #exitBtn{background:#ff4444;color:white;font-weight:bold;border:none;padding:10px 16px;border-radius:8px;margin-bottom:1rem;cursor:pointer;transition:background 0.3s ease,transform 0.2s ease;}
-    #exitBtn:hover{background:#ff2222;transform:scale(1.05);}
+    #exitBtn,#clearBtn{background:#ff4444;color:white;font-weight:bold;border:none;padding:10px 16px;border-radius:8px;margin-bottom:1rem;cursor:pointer;transition:background 0.3s ease,transform 0.2s ease;}
+    #exitBtn:hover,#clearBtn:hover{transform:scale(1.05);}
+    #clearBtn{background:#ffaa00;margin-left:8px;}
+    #exitBtn:hover{background:#ff2222;}
+    #clearBtn:hover{background:#ff8800;}
+    #topButtons{display:flex;gap:8px;margin-bottom:1rem;}
     #loginForm{background:rgba(0,0,0,.6);padding:2rem;border-radius:15px;box-shadow:0 4px 10px rgba(0,0,0,.5);width:100%;max-width:400px;display:flex;flex-direction:column;gap:1rem;}
     input,select,button{padding:12px;font-size:1rem;border-radius:8px;border:none;outline:none;}
     input,select{background:rgba(255,255,255,.1);color:white;width:100%;}
@@ -31,7 +35,10 @@
 </head>
 <body>
   <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-  <button id="exitBtn" style="display:none;">Exit Chat</button>
+  <div id="topButtons" style="display:none;">
+    <button id="exitBtn">Exit Chat</button>
+    <button id="clearBtn" style="display:none;">🗑️ Clear Chat</button>
+  </div>
 
   <div id="loginForm">
     <input id="chatIdInput" placeholder="Enter Order ID" autocomplete="off" />
@@ -65,6 +72,8 @@
     const loginForm = document.getElementById('loginForm');
     const chatForm = document.getElementById('chatForm');
     const exitBtn = document.getElementById('exitBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const topButtons = document.getElementById('topButtons');
 
     let chatId = null;
     let userType = null;
@@ -90,7 +99,9 @@
       loginForm.style.display = 'none';
       chatUl.style.display = 'flex';
       chatForm.style.display = 'flex';
+      topButtons.style.display = 'flex';
       exitBtn.style.display = 'inline-block';
+      clearBtn.style.display = (userType === 'admin') ? 'inline-block' : 'none';
       joined = true;
     }
 
@@ -98,7 +109,7 @@
       loginForm.style.display = 'flex';
       chatUl.style.display = 'none';
       chatForm.style.display = 'none';
-      exitBtn.style.display = 'none';
+      topButtons.style.display = 'none';
       joined = false;
     }
 
@@ -137,21 +148,25 @@
       doJoin(chatId, userType, password);
     });
 
-  exitBtn.addEventListener('click', () => {
-  if (confirm('Are you sure you want to exit this chat?')) {
-    localStorage.removeItem('ufs_session');
-    // limpia la interfaz
-    loginForm.style.display = 'flex';
-    chatUl.style.display = 'none';
-    chatForm.style.display = 'none';
-    exitBtn.style.display = 'none';
-    clearBtn.style.display = 'none';
-    // 🔄 recarga completa tras 200ms para reiniciar socket, sesión y notificaciones
-    setTimeout(() => {
-      location.reload();
-    }, 200);
-  }
-});
+    // Exit button
+    exitBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to exit this chat?')) {
+        localStorage.removeItem('ufs_session');
+        showLoginUI();
+        setTimeout(() => location.reload(), 200);
+      }
+    });
+
+    // ✅ Clear Chat (solo admin)
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Are you sure you want to clear this chat? This action cannot be undone.')) return;
+      socket.emit('clearChat');
+    });
+
+    socket.on('chatCleared', () => {
+      chatUl.innerHTML = '';
+      alert('Chat history cleared.');
+    });
 
     socket.on('connect', () => {
       const s = JSON.parse(localStorage.getItem('ufs_session') || 'null');
@@ -211,4 +226,3 @@
   </script>
 </body>
 </html>
-
