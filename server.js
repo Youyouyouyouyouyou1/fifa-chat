@@ -122,6 +122,28 @@ io.on('connection', (socket) => {
     io.to(socket.chatId).emit('receiveMessage', message);
   });
 
+  // ✅ NUEVO: Borrar historial de chat (solo admin)
+  socket.on('clearChat', async () => {
+    if (socket.userType !== 'admin') {
+      socket.emit('errorMsg', 'Unauthorized: only admin can clear chat.');
+      return;
+    }
+
+    if (!socket.chatId) {
+      socket.emit('errorMsg', 'Missing chatId.');
+      return;
+    }
+
+    try {
+      await Message.deleteMany({ chatId: socket.chatId });
+      console.log(`🗑️ Chat ${socket.chatId} cleared by admin`);
+      io.to(socket.chatId).emit('chatCleared');
+    } catch (err) {
+      console.error('❌ Error clearing chat:', err);
+      socket.emit('errorMsg', 'Error clearing chat.');
+    }
+  });
+
   // Cuando se desconecta
   socket.on('disconnect', (reason) => {
     console.log('❌ Client disconnected:', socket.id, 'reason:', reason);
