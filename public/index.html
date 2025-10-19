@@ -137,17 +137,21 @@
       doJoin(chatId, userType, password);
     });
 
-    exitBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to exit this chat?')) {
-        localStorage.removeItem('ufs_session');
-        socket.disconnect();
-        chatUl.innerHTML = '';
-        showLoginUI();
-        chatIdInput.value = '';
-        userTypeSelect.value = '';
-        passwordInput.value = '';
-      }
-    });
+  exitBtn.addEventListener('click', () => {
+  if (confirm('Are you sure you want to exit this chat?')) {
+    localStorage.removeItem('ufs_session');
+    // limpia la interfaz
+    loginForm.style.display = 'flex';
+    chatUl.style.display = 'none';
+    chatForm.style.display = 'none';
+    exitBtn.style.display = 'none';
+    clearBtn.style.display = 'none';
+    // 🔄 recarga completa tras 200ms para reiniciar socket, sesión y notificaciones
+    setTimeout(() => {
+      location.reload();
+    }, 200);
+  }
+});
 
     socket.on('connect', () => {
       const s = JSON.parse(localStorage.getItem('ufs_session') || 'null');
@@ -207,3 +211,4 @@
   </script>
 </body>
 </html>
+
