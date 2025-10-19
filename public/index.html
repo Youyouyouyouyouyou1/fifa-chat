@@ -37,7 +37,7 @@
   <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
   <div id="topButtons" style="display:none;">
     <button id="exitBtn">Exit Chat</button>
-    <button id="clearBtn" style="display:none;">🗑 Clear Chat</button>
+    <button id="clearBtn" style="display:none;">🗑️ Clear Chat</button>
   </div>
 
   <div id="loginForm">
@@ -181,7 +181,7 @@
       if (msg.author && msg.author.includes('Player')) cls = 'player';
       if (msg.author === 'Admin') cls = 'admin';
       li.className = cls;
-      li.innerHTML = <strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>;
+      li.innerHTML = `<strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
       chatUl.appendChild(li);
       chatUl.scrollTop = chatUl.scrollHeight;
     }
@@ -189,7 +189,7 @@
     async function loadHistory() {
       if (!chatId) return;
       try {
-        const res = await fetch(/chat/${encodeURIComponent(chatId)});
+        const res = await fetch(`/chat/${encodeURIComponent(chatId)}`);
         const messages = await res.json();
         chatUl.innerHTML = '';
         messages.forEach(showMessage);
@@ -202,7 +202,7 @@
       showMessage(msg);
       try {
         if (window.Notification && Notification.permission === "granted") {
-          new Notification("💬 New message", { body: ${msg.author}: ${msg.text} });
+          new Notification("💬 New message", { body: `${msg.author}: ${msg.text}` });
         }
       } catch(e) {}
     });
