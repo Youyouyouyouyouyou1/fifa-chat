@@ -1,228 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ULTIMATEFUTSERVICE CHAT</title>
-  <style>
-    :root { --primary:#00ffea; --bg-dark:#0a0f1f; --bg-light:#1a2238; }
-    body{font-family:Arial,sans-serif;background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;margin:0;padding:1rem;}
-    h2{color:var(--primary);margin-bottom:0.5rem;font-size:1.8rem;text-align:center;}
-    #exitBtn,#clearBtn{background:#ff4444;color:white;font-weight:bold;border:none;padding:10px 16px;border-radius:8px;margin-bottom:1rem;cursor:pointer;transition:background 0.3s ease,transform 0.2s ease;}
-    #exitBtn:hover,#clearBtn:hover{transform:scale(1.05);}
-    #clearBtn{background:#ffaa00;margin-left:8px;}
-    #exitBtn:hover{background:#ff2222;}
-    #clearBtn:hover{background:#ff8800;}
-    #topButtons{display:flex;gap:8px;margin-bottom:1rem;}
-    #loginForm{background:rgba(0,0,0,.6);padding:2rem;border-radius:15px;box-shadow:0 4px 10px rgba(0,0,0,.5);width:100%;max-width:400px;display:flex;flex-direction:column;gap:1rem;}
-    input,select,button{padding:12px;font-size:1rem;border-radius:8px;border:none;outline:none;}
-    input,select{background:rgba(255,255,255,.1);color:white;width:100%;}
-    input::placeholder{color:rgba(255,255,255,.6);}
-    select option{background:#1a2238;color:#fff;}
-    button{background:var(--primary);color:#000;font-weight:bold;cursor:pointer;transition:transform .2s ease,background .3s ease;}
-    button:hover{background:#00d4c2;transform:scale(1.03);}
-    #chat{list-style:none;padding:1rem;flex:1;overflow-y:auto;margin:1rem auto;background:rgba(0,0,0,.6);border-radius:15px;width:100%;max-width:700px;display:flex;flex-direction:column;gap:10px;}
-    #chat li{padding:10px;border-radius:12px;max-width:80%;word-wrap:break-word;}
-    .client{background:#00ffea;color:#000;align-self:flex-start;}
-    .player{background:#fff;color:#000;align-self:flex-end;}
-    .admin{background:#ffcc00;color:#000;align-self:flex-end;}
-    .time{font-size:.8em;color:rgba(255,255,255,.7);margin-top:5px;}
-    #chatForm{display:none;width:100%;max-width:700px;display:flex;flex-direction:row;gap:8px;}
-    #msg{background:rgba(255,255,255,.1);color:white;padding:10px;border-radius:8px;flex:1;}
-    #btnSend{background:var(--primary);color:#000;font-weight:bold;border-radius:8px;padding:10px 14px;flex-shrink:0;}
-    @media(max-width:768px){body{padding:.8rem;}h2{font-size:1.4rem;}#loginForm{padding:1.2rem;gap:.8rem;}input,select,button{font-size:1rem;}#chat{max-height:65vh;}#chatForm{flex-direction:column;gap:6px;}#msg,#btnSend{width:100%;font-size:1rem;}}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ULTIMATEFUTSERVICE CHAT</title>
+
+<style>
+:root { --primary:#00ffea; --bg-dark:#0a0f1f; --bg-light:#1a2238; }
+
+body{
+  font-family:Arial,sans-serif;
+  background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+  padding:1rem;
+}
+
+h2{color:var(--primary);margin-bottom:0.5rem;font-size:1.8rem;text-align:center;}
+
+#loginForm,#adminList{
+  background:rgba(0,0,0,.6);
+  padding:2rem;
+  border-radius:15px;
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+}
+
+input,select,button{
+  padding:12px;
+  font-size:1rem;
+  border-radius:8px;
+  border:none;
+  outline:none;
+}
+
+input,select{background:rgba(255,255,255,.1);color:white;width:100%;}
+input::placeholder{color:rgba(255,255,255,.6);}
+select option{background:#1a2238;color:#fff;}
+
+button{
+  background:var(--primary);
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{background:#00d4c2}
+
+#chat{
+  list-style:none;
+  padding:1rem;
+  flex:1;
+  overflow-y:auto;
+  margin:1rem auto;
+  background:rgba(0,0,0,.6);
+  border-radius:15px;
+  width:100%;
+  max-width:700px;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+}
+
+#chat li{
+  padding:10px;
+  border-radius:12px;
+  max-width:80%;
+  word-wrap:break-word;
+}
+
+.client{background:#00ffea;color:#000;align-self:flex-start;}
+.player{background:#fff;color:#000;align-self:flex-end;}
+.admin{background:#ffcc00;color:#000;align-self:flex-end;}
+
+.time{font-size:.75em;color:#ddd;margin-top:4px;}
+
+#chatForm{
+  display:none;
+  width:100%;
+  max-width:700px;
+  gap:8px;
+}
+
+#msg{flex:1;background:rgba(255,255,255,.1);color:white;}
+
+#topButtons{
+  display:none;
+  gap:8px;
+  margin-bottom:1rem;
+}
+
+#exitBtn,#clearBtn{
+  background:#ff4444;
+  color:white;
+  font-weight:bold;
+}
+
+#clearBtn{background:#ffaa00}
+
+/* ADMIN LIST */
+#adminList{display:none;}
+.chatItem{
+  background:rgba(255,255,255,.08);
+  padding:12px;
+  border-radius:10px;
+  cursor:pointer;
+}
+.chatItem:hover{background:rgba(255,255,255,.15)}
+.chatTitle{font-weight:bold;color:var(--primary)}
+.chatLast{font-size:.9em;color:#ccc}
+.chatMeta{font-size:.75em;color:#aaa;margin-top:4px}
+
+@media(max-width:768px){
+  h2{font-size:1.4rem}
+  #chat{max-height:65vh}
+}
+</style>
 </head>
+
 <body>
-  <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-  <div id="topButtons" style="display:none;">
-    <button id="exitBtn">Exit Chat</button>
-    <button id="clearBtn" style="display:none;">🗑️ Clear Chat</button>
-  </div>
 
-  <div id="loginForm">
-    <input id="chatIdInput" placeholder="Enter Order ID" autocomplete="off" />
-    <select id="userTypeSelect">
-      <option value="">Select your role</option>
-      <option value="client">Client</option>
-      <option value="player">Player</option>
-      <option value="admin">Admin</option>
-    </select>
-    <input id="passwordInput" type="password" placeholder="Password (only player/admin)" style="display:none;" autocomplete="off" />
-    <button id="btnEnter">Enter Chat</button>
-  </div>
+<h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
-  <ul id="chat" style="display:none;"></ul>
+<div id="topButtons">
+  <button id="exitBtn">Exit</button>
+  <button id="clearBtn" style="display:none;">Clear Chat</button>
+</div>
 
-  <form id="chatForm" style="display:none;">
-    <input id="msg" placeholder="Type your message..." autocomplete="off" />
-    <button id="btnSend" type="submit">Send</button>
-  </form>
+<!-- LOGIN -->
+<div id="loginForm">
+  <input id="chatIdInput" placeholder="Enter Order ID">
+  <select id="userType">
+    <option value="">Select role</option>
+    <option value="client">Client</option>
+    <option value="player">Player</option>
+    <option value="admin">Admin</option>
+  </select>
+  <input id="password" type="password" placeholder="Admin / Player password" style="display:none">
+  <button id="enterBtn">Enter</button>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io({ transports: ['websocket','polling'] });
+<!-- ADMIN CHAT LIST -->
+<div id="adminList"></div>
 
-    const chatIdInput = document.getElementById('chatIdInput');
-    const userTypeSelect = document.getElementById('userTypeSelect');
-    const passwordInput = document.getElementById('passwordInput');
-    const btnEnter = document.getElementById('btnEnter');
-    const chatUl = document.getElementById('chat');
-    const msgInput = document.getElementById('msg');
-    const loginForm = document.getElementById('loginForm');
-    const chatForm = document.getElementById('chatForm');
-    const exitBtn = document.getElementById('exitBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const topButtons = document.getElementById('topButtons');
+<!-- CHAT -->
+<ul id="chat"></ul>
 
-    let chatId = null;
-    let userType = null;
-    let password = null;
-    let joined = false;
+<form id="chatForm">
+  <input id="msg" placeholder="Type message...">
+  <button>Send</button>
+</form>
 
-    // restore session
-    const saved = JSON.parse(localStorage.getItem('ufs_session') || 'null');
-    if (saved && saved.chatId && saved.userType) {
-      chatId = saved.chatId;
-      userType = saved.userType;
-      password = saved.password || '';
-      chatIdInput.value = chatId;
-      userTypeSelect.value = userType;
-      passwordInput.value = password;
-    }
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io({transports:['websocket','polling']});
 
-    userTypeSelect.addEventListener('change', () => {
-      passwordInput.style.display = (userTypeSelect.value === 'player' || userTypeSelect.value === 'admin') ? 'block' : 'none';
-    });
+const loginForm = document.getElementById('loginForm');
+const adminList = document.getElementById('adminList');
+const chatUl = document.getElementById('chat');
+const chatForm = document.getElementById('chatForm');
+const msgInput = document.getElementById('msg');
+const topButtons = document.getElementById('topButtons');
+const clearBtn = document.getElementById('clearBtn');
 
-    function showChatUI() {
-      loginForm.style.display = 'none';
-      chatUl.style.display = 'flex';
-      chatForm.style.display = 'flex';
-      topButtons.style.display = 'flex';
-      exitBtn.style.display = 'inline-block';
-      clearBtn.style.display = (userType === 'admin') ? 'inline-block' : 'none';
-      joined = true;
-    }
+let userType = null;
+let chatId = null;
 
-    function showLoginUI() {
-      loginForm.style.display = 'flex';
-      chatUl.style.display = 'none';
-      chatForm.style.display = 'none';
-      topButtons.style.display = 'none';
-      joined = false;
-    }
+// ROLE CHANGE
+userTypeSelect = document.getElementById('userType');
+userTypeSelect.onchange = () => {
+  password.style.display = (userTypeSelect.value !== 'client') ? 'block' : 'none';
+  chatIdInput.style.display = (userTypeSelect.value === 'admin') ? 'none' : 'block';
+};
 
-    function doJoin(id, type, pass) {
-      socket.off('joined');
-      socket.off('errorMsg');
+// ENTER
+enterBtn.onclick = () => {
+  userType = userTypeSelect.value;
+  const pass = password.value;
+  chatId = chatIdInput.value.trim();
 
-      socket.once('joined', (data) => {
-        if (data && data.success) {
-          localStorage.setItem('ufs_session', JSON.stringify({ chatId: id, userType: type, password: pass || '' }));
-          showChatUI();
-          loadHistory();
-        }
-      });
+  if (!userType) return alert('Select role');
 
-      socket.once('errorMsg', (msg) => {
-        alert(msg);
-        localStorage.removeItem('ufs_session');
-      });
+  if (userType === 'admin') {
+    socket.emit('adminLogin', { password: pass });
+  } else {
+    if (!chatId) return alert('Order ID required');
+    socket.emit('joinChat', { type:userType, id:chatId, password:pass });
+  }
+};
 
-      socket.emit('joinChat', { type, id, password: pass });
-    }
+// ADMIN LIST
+socket.on('adminChats', chats => {
+  loginForm.style.display = 'none';
+  adminList.style.display = 'flex';
+  adminList.innerHTML = '';
 
-    btnEnter.addEventListener('click', () => {
-      chatId = chatIdInput.value.trim();
-      userType = userTypeSelect.value;
-      password = passwordInput.value || '';
+  chats.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'chatItem';
+    div.innerHTML = `
+      <div class="chatTitle">Order ${c.chatId}</div>
+      <div class="chatLast">${c.lastText || ''}</div>
+      <div class="chatMeta">${c.time || ''} · ${c.unread} unread</div>
+    `;
+    div.onclick = () => {
+      chatId = c.chatId;
+      socket.emit('joinChat', { type:'admin', id:chatId, password:password.value });
+    };
+    adminList.appendChild(div);
+  });
+});
 
-      if (!chatId) return alert('You must enter an Order ID.');
-      if (!['client','player','admin'].includes(userType)) return alert('Please select a valid role.');
+// JOINED CHAT
+socket.on('joined', () => {
+  adminList.style.display = 'none';
+  chatUl.style.display = 'flex';
+  chatForm.style.display = 'flex';
+  topButtons.style.display = 'flex';
+  clearBtn.style.display = (userType === 'admin') ? 'inline-block' : 'none';
+  loadHistory();
+});
 
-      if (window.Notification && Notification.permission !== "granted") {
-        Notification.requestPermission().catch(()=>{});
-      }
+// MESSAGES
+socket.on('receiveMessage', msg => {
+  const li = document.createElement('li');
+  li.className = msg.author.toLowerCase();
+  li.innerHTML = `<b>${msg.author}</b><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
+  chatUl.appendChild(li);
+  chatUl.scrollTop = chatUl.scrollHeight;
+});
 
-      doJoin(chatId, userType, password);
-    });
+// SEND
+chatForm.onsubmit = e => {
+  e.preventDefault();
+  if (!msgInput.value.trim()) return;
+  socket.emit('sendMessage', msgInput.value.trim());
+  msgInput.value = '';
+};
 
-    // Exit button
-    exitBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to exit this chat?')) {
-        localStorage.removeItem('ufs_session');
-        showLoginUI();
-        setTimeout(() => location.reload(), 200);
-      }
-    });
-
-    // ✅ Clear Chat (solo admin)
-    clearBtn.addEventListener('click', () => {
-      if (!confirm('Are you sure you want to clear this chat? This action cannot be undone.')) return;
-      socket.emit('clearChat');
-    });
-
-    socket.on('chatCleared', () => {
-      chatUl.innerHTML = '';
-      alert('Chat history cleared.');
-    });
-
-    socket.on('connect', () => {
-      const s = JSON.parse(localStorage.getItem('ufs_session') || 'null');
-      if (s && s.chatId && s.userType && !joined) {
-        doJoin(s.chatId, s.userType, s.password || '');
-      }
-    });
-
-    function showMessage(msg) {
-      const li = document.createElement('li');
-      let cls = 'client';
-      if (msg.author && msg.author.includes('Player')) cls = 'player';
-      if (msg.author === 'Admin') cls = 'admin';
-      li.className = cls;
-      li.innerHTML = `<strong>${msg.author}</strong><br>${msg.text}<div class="time">${new Date(msg.time).toLocaleString()}</div>`;
-      chatUl.appendChild(li);
-      chatUl.scrollTop = chatUl.scrollHeight;
-    }
-
-    async function loadHistory() {
-      if (!chatId) return;
-      try {
-        const res = await fetch(`/chat/${encodeURIComponent(chatId)}`);
-        const messages = await res.json();
-        chatUl.innerHTML = '';
-        messages.forEach(showMessage);
-      } catch (err) {
-        console.error('Error loading history', err);
-      }
-    }
-
-    socket.on('receiveMessage', (msg) => {
-      showMessage(msg);
-      try {
-        if (window.Notification && Notification.permission === "granted") {
-          new Notification("💬 New message", { body: `${msg.author}: ${msg.text}` });
-        }
-      } catch(e) {}
-    });
-
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const m = msgInput.value.trim();
-      if (!m) return;
-
-      if (!socket.connected) {
-        socket.connect();
-        alert('Reconnecting, please try again in a second.');
-        return;
-      }
-
-      socket.emit('sendMessage', m);
-      msgInput.value = '';
-      msgInput.focus();
-      if (navigator.vibrate) navigator.vibrate(30);
-    });
-  </script>
+// LOAD HISTORY
+async function loadHistory(){
+  chatUl.innerHTML = '';
+  const res = await fetch('/chat/' + chatId);
+  (await res.json()).forEach(m => socket.emit('receiveMessage', m));
+}
+</script>
 </body>
 </html>
