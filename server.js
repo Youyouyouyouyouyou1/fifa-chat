@@ -20,6 +20,8 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
+/* ================== MODELOS ================== */
+
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -28,21 +30,26 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
+const counterSchema = new mongoose.Schema({
+  chatId: { type:String, unique:true },
+  wins: { type:Number, default:0 },
+  losses: { type:Number, default:0 }
+});
+const MatchCounter = mongoose.model('MatchCounter', counterSchema);
+
 app.use(express.static(__dirname + '/public'));
 
-// ================== HISTORIAL CHAT ==================
+/* ================== HISTORIAL CHAT ================== */
 app.get('/chat/:chatId', async (req,res)=>{
   try{
-    const messages = await Message
-      .find({ chatId:req.params.chatId })
-      .sort({ time:1 });
+    const messages = await Message.find({ chatId:req.params.chatId }).sort({ time:1 });
     res.json(messages);
   }catch(e){
     res.status(500).json({ error:'Error fetching messages' });
   }
 });
 
-// ================== ADMIN: LISTA DE CHATS ==================
+/* ================== ADMIN: LISTA DE CHATS ================== */
 app.get('/api/admin/chats', async (req,res)=>{
   try{
     const chats = await Message.aggregate([
@@ -69,16 +76,16 @@ app.get('/api/admin/chats', async (req,res)=>{
   }
 });
 
-// ================== PASSWORDS ==================
+/* ================== PASSWORDS ================== */
 const passwords = {
   player:'JAHEUhdjjdbc234hd',
   admin:'somoslosputosamos23dhf1A'
 };
 
-// ================== SOCKET ==================
+/* ================== SOCKET ================== */
 io.on('connection', socket => {
 
-  socket.on('joinChat', ({ type,id,password })=>{
+  socket.on('joinChat', async ({ type,id,password })=>{
     if(!type || !id) return socket.emit('errorMsg','Missing data');
 
     if((type==='player'||type==='admin') && passwords[type]!==password){
@@ -88,6 +95,14 @@ io.on('connection', socket => {
     socket.userType = type;
     socket.chatId = id;
     socket.join(id);
+
+    // crear contador si no existe
+    await MatchCounter.findOneAndUpdate(
+      { chatId:id },
+      { $setOnInsert:{ wins:0, losses:0 } },
+      { upsert:true }
+    );
+
     socket.emit('joined',{ success:true });
   });
 
@@ -109,6 +124,30 @@ io.on('connection', socket => {
     io.to(socket.chatId).emit('receiveMessage', msg);
   });
 
+  /* ===== CONTADOR FUT CHAMPIONS ===== */
+
+  socket.on('getCounter', async ()=>{
+    if(!socket.chatId) return;
+    const counter = await MatchCounter.findOne({ chatId:socket.chatId });
+    socket.emit('counterUpdated', counter);
+  });
+
+  socket.on('updateCounter', async ({ wins, losses })=>{
+    if(socket.userType !== 'player') return;
+
+    const w = Math.max(0, Math.min(15, wins));
+    const l = Math.max(0, Math.min(15, losses));
+
+    const counter = await MatchCounter.findOneAndUpdate(
+      { chatId:socket.chatId },
+      { wins:w, losses:l },
+      { new:true }
+    );
+
+    io.to(socket.chatId).emit('counterUpdated', counter);
+  });
+
+  /* ===== CLEAR CHAT ===== */
   socket.on('clearChat', async ()=>{
     if(socket.userType!=='admin') return;
     await Message.deleteMany({ chatId:socket.chatId });
