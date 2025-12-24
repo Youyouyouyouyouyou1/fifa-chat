@@ -20,8 +20,7 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
-/* ================== SCHEMAS ================== */
-
+/* ================== MENSAJES ================== */
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -30,11 +29,11 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
-/* 🔹 NUEVO: COUNTER */
+/* ================== CONTADOR FUT (NUEVO) ================== */
 const counterSchema = new mongoose.Schema({
-  chatId:{ type:String, unique:true },
-  wins:{ type:Number, default:0 },
-  losses:{ type:Number, default:0 }
+  chatId: { type:String, unique:true },
+  wins: { type:Number, default:0 },
+  losses: { type:Number, default:0 }
 });
 const Counter = mongoose.model('Counter', counterSchema);
 
@@ -99,16 +98,12 @@ io.on('connection', socket => {
     socket.chatId = id;
     socket.join(id);
 
-    /* 🔹 ENVIAR CONTADOR AL ENTRAR */
+    /* ---- enviar contador al entrar ---- */
     let counter = await Counter.findOne({ chatId:id });
     if(!counter){
       counter = await Counter.create({ chatId:id });
     }
-
-    socket.emit('counterUpdate',{
-      wins:counter.wins,
-      losses:counter.losses
-    });
+    socket.emit('counterUpdated', counter);
 
     socket.emit('joined',{ success:true });
   });
@@ -131,23 +126,20 @@ io.on('connection', socket => {
     io.to(socket.chatId).emit('receiveMessage', msg);
   });
 
-  /* 🔹 ACTUALIZAR CONTADOR (SOLO PLAYER) */
-  socket.on('updateCounter', async ({ type,delta })=>{
+  /* ================== CONTADOR FUT ================== */
+  socket.on('updateCounter', async ({ wins, losses })=>{
     if(socket.userType!=='player') return;
-    if(!['wins','losses'].includes(type)) return;
 
-    let counter = await Counter.findOne({ chatId:socket.chatId });
-    if(!counter){
-      counter = await Counter.create({ chatId:socket.chatId });
-    }
+    const counter = await Counter.findOneAndUpdate(
+      { chatId:socket.chatId },
+      {
+        wins: Math.max(0, Math.min(15, wins)),
+        losses: Math.max(0, Math.min(15, losses))
+      },
+      { new:true, upsert:true }
+    );
 
-    counter[type] = Math.min(15, Math.max(0, counter[type] + delta));
-    await counter.save();
-
-    io.to(socket.chatId).emit('counterUpdate',{
-      wins:counter.wins,
-      losses:counter.losses
-    });
+    io.to(socket.chatId).emit('counterUpdated', counter);
   });
 
   socket.on('clearChat', async ()=>{
