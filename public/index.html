@@ -20,12 +20,12 @@ body{
 }
 h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
 
-/* ===== COUNTER ===== */
-#counterBar{
+/* ===== FUT COUNTER ===== */
+#futCounter{
   display:none;
   align-items:center;
-  gap:40px;
-  margin:10px 0 5px
+  gap:25px;
+  margin:10px 0 15px
 }
 .counterBox{
   display:flex;
@@ -33,30 +33,37 @@ h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
   align-items:center;
   gap:6px
 }
-.counterLabel{
+.counterNumber{
+  font-size:3.2rem;
   font-weight:bold;
-  letter-spacing:1px
+  min-width:60px;
+  text-align:center
 }
-.counterValue{
-  font-size:48px;
-  font-weight:bold;
+.counterLabel{
+  font-size:.9rem;
+  opacity:.8
 }
 .counterBtns{
   display:flex;
-  flex-direction:column;
   gap:6px
 }
 .counterBtns button{
-  width:40px;
-  height:40px;
-  font-size:20px;
-  padding:0
+  padding:4px 10px;
+  font-size:1.2rem
 }
 #futLogo{
-  height:70px
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#000;
+  font-weight:bold
 }
 
-/* ===== EXISTING ===== */
+/* ===== ORIGINAL CSS ===== */
 button,input,select{
   padding:12px;
   border-radius:8px;
@@ -135,25 +142,25 @@ button{
 
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
-<!-- ===== COUNTER BAR ===== -->
-<div id="counterBar">
+<!-- ===== FUT COUNTER ===== -->
+<div id="futCounter">
   <div class="counterBox">
+    <div class="counterNumber" id="wins">0</div>
     <div class="counterLabel">WINS</div>
-    <div class="counterValue" id="winsValue">0</div>
-    <div class="counterBtns" id="winsBtns">
-      <button onclick="updateCounter('wins',1)">+</button>
-      <button onclick="updateCounter('wins',-1)">−</button>
+    <div class="counterBtns" id="winBtns">
+      <button onclick="changeWins(1)">+</button>
+      <button onclick="changeWins(-1)">−</button>
     </div>
   </div>
 
-  <img id="futLogo" src="/fut-logo.png">
+  <div id="futLogo">FUT</div>
 
   <div class="counterBox">
+    <div class="counterNumber" id="losses">0</div>
     <div class="counterLabel">LOSSES</div>
-    <div class="counterValue" id="lossesValue">0</div>
-    <div class="counterBtns" id="lossesBtns">
-      <button onclick="updateCounter('losses',1)">+</button>
-      <button onclick="updateCounter('losses',-1)">−</button>
+    <div class="counterBtns" id="lossBtns">
+      <button onclick="changeLosses(1)">+</button>
+      <button onclick="changeLosses(-1)">−</button>
     </div>
   </div>
 </div>
@@ -163,8 +170,26 @@ button{
   <button id="clearBtn">Clear Chat</button>
 </div>
 
-<!-- ===== RESTO DEL HTML SIN CAMBIOS ===== -->
-<!-- (todo lo demás es EXACTAMENTE igual) -->
+<div id="loginForm">
+  <input id="chatIdInput" placeholder="Enter Order ID">
+  <select id="userTypeSelect">
+    <option value="">Select role</option>
+    <option value="client">Client</option>
+    <option value="player">Player</option>
+    <option value="admin">Admin</option>
+  </select>
+  <input id="passwordInput" type="password" placeholder="Password" style="display:none">
+  <button id="btnEnter">Enter</button>
+</div>
+
+<div id="adminPanel" style="display:none"></div>
+
+<ul id="chat"></ul>
+
+<form id="chatForm">
+  <input id="msg" placeholder="Type message..." style="flex:1">
+  <button>Send</button>
+</form>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -172,34 +197,34 @@ const socket = io({transports:['websocket','polling']});
 
 let wins=0, losses=0;
 
-/* === COUNTER LOGIC (solo frontend por ahora) === */
-function updateCounter(type,delta){
-  if(userType!=='player') return;
-  if(type==='wins'){
-    wins=Math.min(15,Math.max(0,wins+delta));
-    document.getElementById('winsValue').textContent=wins;
-  }
-  if(type==='losses'){
-    losses=Math.min(15,Math.max(0,losses+delta));
-    document.getElementById('lossesValue').textContent=losses;
-  }
+/* ===== CONTADOR SOCKET ===== */
+socket.on('counterUpdated', c=>{
+  wins=c.wins; losses=c.losses;
+  document.getElementById('wins').textContent=wins;
+  document.getElementById('losses').textContent=losses;
+});
+
+function changeWins(v){
+  socket.emit('updateCounter',{ wins:wins+v, losses });
+}
+function changeLosses(v){
+  socket.emit('updateCounter',{ wins, losses:losses+v });
 }
 
-/* === SHOW COUNTER WHEN CHAT OPENS === */
-function showChat(){
-  loginForm.style.display='none';
-  adminPanel.style.display='none';
-  chatUl.style.display='flex';
-  chatForm.style.display='flex';
-  topButtons.style.display='flex';
-  document.getElementById('counterBar').style.display='flex';
-
-  const showBtns = userType==='player';
-  document.getElementById('winsBtns').style.display=showBtns?'flex':'none';
-  document.getElementById('lossesBtns').style.display=showBtns?'flex':'none';
-
-  clearBtn.style.display=isAdmin?'block':'none';
+/* ===== OCULTAR BOTONES SI NO PLAYER ===== */
+function updateCounterUI(){
+  const show = userType==='player';
+  document.getElementById('winBtns').style.display = show?'flex':'none';
+  document.getElementById('lossBtns').style.display = show?'flex':'none';
+  document.getElementById('futCounter').style.display='flex';
 }
+
+/* ===== INTEGRACIÓN CON TU FLUJO ===== */
+const _showChat = showChat;
+showChat = function(){
+  _showChat();
+  updateCounterUI();
+};
 </script>
 </body>
 </html>
