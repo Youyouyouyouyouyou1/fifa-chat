@@ -20,7 +20,6 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
-/* ================== MENSAJES ================== */
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -29,17 +28,9 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
-/* ================== CONTADOR FUT (NUEVO) ================== */
-const counterSchema = new mongoose.Schema({
-  chatId: { type:String, unique:true },
-  wins: { type:Number, default:0 },
-  losses: { type:Number, default:0 }
-});
-const Counter = mongoose.model('Counter', counterSchema);
-
 app.use(express.static(__dirname + '/public'));
 
-/* ================== HISTORIAL CHAT ================== */
+// ================== HISTORIAL CHAT ==================
 app.get('/chat/:chatId', async (req,res)=>{
   try{
     const messages = await Message
@@ -51,7 +42,7 @@ app.get('/chat/:chatId', async (req,res)=>{
   }
 });
 
-/* ================== ADMIN: LISTA DE CHATS ================== */
+// ================== ADMIN: LISTA DE CHATS ==================
 app.get('/api/admin/chats', async (req,res)=>{
   try{
     const chats = await Message.aggregate([
@@ -78,16 +69,16 @@ app.get('/api/admin/chats', async (req,res)=>{
   }
 });
 
-/* ================== PASSWORDS ================== */
+// ================== PASSWORDS ==================
 const passwords = {
   player:'JAHEUhdjjdbc234hd',
   admin:'somoslosputosamos23dhf1A'
 };
 
-/* ================== SOCKET ================== */
+// ================== SOCKET ==================
 io.on('connection', socket => {
 
-  socket.on('joinChat', async ({ type,id,password })=>{
+  socket.on('joinChat', ({ type,id,password })=>{
     if(!type || !id) return socket.emit('errorMsg','Missing data');
 
     if((type==='player'||type==='admin') && passwords[type]!==password){
@@ -97,14 +88,6 @@ io.on('connection', socket => {
     socket.userType = type;
     socket.chatId = id;
     socket.join(id);
-
-    /* ---- enviar contador al entrar ---- */
-    let counter = await Counter.findOne({ chatId:id });
-    if(!counter){
-      counter = await Counter.create({ chatId:id });
-    }
-    socket.emit('counterUpdated', counter);
-
     socket.emit('joined',{ success:true });
   });
 
@@ -124,22 +107,6 @@ io.on('connection', socket => {
 
     await new Message(msg).save();
     io.to(socket.chatId).emit('receiveMessage', msg);
-  });
-
-  /* ================== CONTADOR FUT ================== */
-  socket.on('updateCounter', async ({ wins, losses })=>{
-    if(socket.userType!=='player') return;
-
-    const counter = await Counter.findOneAndUpdate(
-      { chatId:socket.chatId },
-      {
-        wins: Math.max(0, Math.min(15, wins)),
-        losses: Math.max(0, Math.min(15, losses))
-      },
-      { new:true, upsert:true }
-    );
-
-    io.to(socket.chatId).emit('counterUpdated', counter);
   });
 
   socket.on('clearChat', async ()=>{
