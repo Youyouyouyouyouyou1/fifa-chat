@@ -20,50 +20,6 @@ body{
 }
 h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
 
-/* ===== FUT COUNTER ===== */
-#futCounter{
-  display:none;
-  align-items:center;
-  gap:25px;
-  margin:10px 0 15px
-}
-.counterBox{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px
-}
-.counterNumber{
-  font-size:3.2rem;
-  font-weight:bold;
-  min-width:60px;
-  text-align:center
-}
-.counterLabel{
-  font-size:.9rem;
-  opacity:.8
-}
-.counterBtns{
-  display:flex;
-  gap:6px
-}
-.counterBtns button{
-  padding:4px 10px;
-  font-size:1.2rem
-}
-#futLogo{
-  width:55px;
-  height:55px;
-  border-radius:50%;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#000;
-  font-weight:bold
-}
-
-/* ===== ORIGINAL CSS ===== */
 button,input,select{
   padding:12px;
   border-radius:8px;
@@ -142,29 +98,6 @@ button{
 
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
-<!-- ===== FUT COUNTER ===== -->
-<div id="futCounter">
-  <div class="counterBox">
-    <div class="counterNumber" id="wins">0</div>
-    <div class="counterLabel">WINS</div>
-    <div class="counterBtns" id="winBtns">
-      <button onclick="changeWins(1)">+</button>
-      <button onclick="changeWins(-1)">−</button>
-    </div>
-  </div>
-
-  <div id="futLogo">FUT</div>
-
-  <div class="counterBox">
-    <div class="counterNumber" id="losses">0</div>
-    <div class="counterLabel">LOSSES</div>
-    <div class="counterBtns" id="lossBtns">
-      <button onclick="changeLosses(1)">+</button>
-      <button onclick="changeLosses(-1)">−</button>
-    </div>
-  </div>
-</div>
-
 <div id="topButtons">
   <button id="exitBtn">Exit</button>
   <button id="clearBtn">Clear Chat</button>
@@ -195,36 +128,154 @@ button{
 <script>
 const socket = io({transports:['websocket','polling']});
 
-let wins=0, losses=0;
+const loginForm = document.getElementById('loginForm');
+const adminPanel = document.getElementById('adminPanel');
+const chatUl = document.getElementById('chat');
+const chatForm = document.getElementById('chatForm');
+const msgInput = document.getElementById('msg');
+const topButtons = document.getElementById('topButtons');
+const clearBtn = document.getElementById('clearBtn');
 
-/* ===== CONTADOR SOCKET ===== */
-socket.on('counterUpdated', c=>{
-  wins=c.wins; losses=c.losses;
-  document.getElementById('wins').textContent=wins;
-  document.getElementById('losses').textContent=losses;
+let chatId=null;
+let userType=null;
+let password='';
+let isAdmin=false;
+let pendingJoin=null;
+
+// ===== UI =====
+userTypeSelect.onchange=()=>{
+  passwordInput.style.display =
+    ['player','admin'].includes(userTypeSelect.value)?'block':'none';
+  chatIdInput.style.display =
+    userTypeSelect.value==='admin'?'none':'block';
+};
+
+btnEnter.onclick=()=>{
+  userType=userTypeSelect.value;
+  password=passwordInput.value||'';
+
+  if(userType==='admin'){
+    isAdmin=true;
+    loginForm.style.display='none';
+    loadAdminPanel();
+    return;
+  }
+
+  chatId=chatIdInput.value.trim();
+  if(!chatId) return alert('Order ID required');
+
+  isAdmin=false;
+  saveSession();
+  joinChat(chatId,userType,password);
+};
+
+// ===== SESSION RESTORE =====
+socket.on('connect', ()=>{
+  const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
+  if(saved && saved.userType!=='admin'){
+    chatId=saved.chatId;
+    userType=saved.userType;
+    password=saved.password||'';
+    isAdmin=false;
+    joinChat(chatId,userType,password);
+  }
 });
 
-function changeWins(v){
-  socket.emit('updateCounter',{ wins:wins+v, losses });
-}
-function changeLosses(v){
-  socket.emit('updateCounter',{ wins, losses:losses+v });
-}
-
-/* ===== OCULTAR BOTONES SI NO PLAYER ===== */
-function updateCounterUI(){
-  const show = userType==='player';
-  document.getElementById('winBtns').style.display = show?'flex':'none';
-  document.getElementById('lossBtns').style.display = show?'flex':'none';
-  document.getElementById('futCounter').style.display='flex';
+// ===== JOIN (ÚNICO Y CORRECTO) =====
+function joinChat(id,type,pass){
+  pendingJoin={id,type};
+  socket.emit('joinChat',{id,type,password:pass});
 }
 
-/* ===== INTEGRACIÓN CON TU FLUJO ===== */
-const _showChat = showChat;
-showChat = function(){
-  _showChat();
-  updateCounterUI();
+socket.on('joined', ()=>{
+  if(!pendingJoin) return;
+  showChat();
+  loadHistory();
+  pendingJoin=null;
+});
+
+// ===== ADMIN PANEL =====
+async function loadAdminPanel(){
+  adminPanel.innerHTML='<h3>Active Chats</h3>';
+  adminPanel.style.display='flex';
+
+  const res = await fetch('/api/admin/chats');
+  const chats = await res.json();
+
+  chats.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='chatItem';
+    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br>
+      <small>${new Date(c.lastTime).toLocaleString()}</small>`;
+    d.onclick=()=>{
+      chatId=c.chatId;
+      joinChat(chatId,'admin',password);
+      isAdmin=true;
+    };
+    adminPanel.appendChild(d);
+  });
+}
+
+// ===== CHAT =====
+function showChat(){
+  loginForm.style.display='none';
+  adminPanel.style.display='none';
+  chatUl.style.display='flex';
+  chatForm.style.display='flex';
+  topButtons.style.display='flex';
+  clearBtn.style.display=isAdmin?'block':'none';
+}
+
+async function loadHistory(){
+  const r=await fetch('/chat/'+chatId);
+  const msgs=await r.json();
+  chatUl.innerHTML='';
+  msgs.forEach(showMsg);
+}
+
+function showMsg(m){
+  const li=document.createElement('li');
+  li.className=
+    m.author==='Admin'?'admin':
+    m.author==='Player'?'player':'client';
+  li.innerHTML=`<b>${m.author}</b><br>${m.text}
+    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
+  chatUl.appendChild(li);
+  chatUl.scrollTop=chatUl.scrollHeight;
+}
+
+chatForm.onsubmit=e=>{
+  e.preventDefault();
+  if(!msgInput.value.trim())return;
+  socket.emit('sendMessage',msgInput.value);
+  msgInput.value='';
 };
+
+socket.on('receiveMessage',showMsg);
+
+// ===== EXIT =====
+exitBtn.onclick=()=>{
+  chatUl.style.display='none';
+  chatForm.style.display='none';
+  topButtons.style.display='none';
+
+  if(isAdmin){
+    loadAdminPanel();
+  }else{
+    localStorage.removeItem('ufs_session');
+    location.reload();
+  }
+};
+
+clearBtn.onclick=()=>socket.emit('clearChat');
+socket.on('chatCleared',()=>chatUl.innerHTML='');
+
+// ===== SAVE SESSION =====
+function saveSession(){
+  localStorage.setItem('ufs_session',JSON.stringify({
+    chatId,userType,password
+  }));
+}
 </script>
 </body>
 </html>
