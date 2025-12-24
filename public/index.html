@@ -84,6 +84,13 @@ button{
 #exitBtn{background:#ff4444;color:#fff}
 #clearBtn{background:#ffaa00;color:#000;display:none}
 
+#futCounter{
+  display:none;
+  align-items:center;
+  gap:20px;
+  margin-bottom:1rem
+}
+
 .chatItem{
   background:rgba(255,255,255,.1);
   padding:12px;
@@ -97,6 +104,24 @@ button{
 <body>
 
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
+
+<div id="futCounter">
+  <div style="text-align:center">
+    <div>Wins</div>
+    <button id="winsMinus">−</button>
+    <div id="wins" style="font-size:2rem">0</div>
+    <button id="winsPlus">+</button>
+  </div>
+
+  <img src="/fut.png" style="height:60px">
+
+  <div style="text-align:center">
+    <div>Losses</div>
+    <button id="lossesMinus">−</button>
+    <div id="losses" style="font-size:2rem">0</div>
+    <button id="lossesPlus">+</button>
+  </div>
+</div>
 
 <div id="topButtons">
   <button id="exitBtn">Exit</button>
@@ -128,26 +153,21 @@ button{
 <script>
 const socket = io({transports:['websocket','polling']});
 
-const loginForm = document.getElementById('loginForm');
-const adminPanel = document.getElementById('adminPanel');
-const chatUl = document.getElementById('chat');
-const chatForm = document.getElementById('chatForm');
-const msgInput = document.getElementById('msg');
-const topButtons = document.getElementById('topButtons');
-const clearBtn = document.getElementById('clearBtn');
+const loginForm=document.getElementById('loginForm');
+const adminPanel=document.getElementById('adminPanel');
+const chatUl=document.getElementById('chat');
+const chatForm=document.getElementById('chatForm');
+const msgInput=document.getElementById('msg');
+const topButtons=document.getElementById('topButtons');
+const clearBtn=document.getElementById('clearBtn');
+const futDiv=document.getElementById('futCounter');
 
-let chatId=null;
-let userType=null;
-let password='';
-let isAdmin=false;
-let pendingJoin=null;
+let chatId=null,userType=null,password='',isAdmin=false;
+let wins=0,losses=0;
 
-// ===== UI =====
 userTypeSelect.onchange=()=>{
-  passwordInput.style.display =
-    ['player','admin'].includes(userTypeSelect.value)?'block':'none';
-  chatIdInput.style.display =
-    userTypeSelect.value==='admin'?'none':'block';
+  passwordInput.style.display=['player','admin'].includes(userTypeSelect.value)?'block':'none';
+  chatIdInput.style.display=userTypeSelect.value==='admin'?'none':'block';
 };
 
 btnEnter.onclick=()=>{
@@ -164,120 +184,63 @@ btnEnter.onclick=()=>{
   chatId=chatIdInput.value.trim();
   if(!chatId) return alert('Order ID required');
 
-  isAdmin=false;
-  saveSession();
-  joinChat(chatId,userType,password);
+  socket.emit('joinChat',{id:chatId,type:userType,password});
 };
 
-// ===== SESSION RESTORE =====
-socket.on('connect', ()=>{
-  const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
-  if(saved && saved.userType!=='admin'){
-    chatId=saved.chatId;
-    userType=saved.userType;
-    password=saved.password||'';
-    isAdmin=false;
-    joinChat(chatId,userType,password);
-  }
-});
-
-// ===== JOIN (ÚNICO Y CORRECTO) =====
-function joinChat(id,type,pass){
-  pendingJoin={id,type};
-  socket.emit('joinChat',{id,type,password:pass});
-}
-
-socket.on('joined', ()=>{
-  if(!pendingJoin) return;
+socket.on('joined',()=>{
   showChat();
   loadHistory();
-  pendingJoin=null;
+  socket.emit('getFut');
 });
 
-// ===== ADMIN PANEL =====
-async function loadAdminPanel(){
-  adminPanel.innerHTML='<h3>Active Chats</h3>';
-  adminPanel.style.display='flex';
-
-  const res = await fetch('/api/admin/chats');
-  const chats = await res.json();
-
-  chats.forEach(c=>{
-    const d=document.createElement('div');
-    d.className='chatItem';
-    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br>
-      <small>${new Date(c.lastTime).toLocaleString()}</small>`;
-    d.onclick=()=>{
-      chatId=c.chatId;
-      joinChat(chatId,'admin',password);
-      isAdmin=true;
-    };
-    adminPanel.appendChild(d);
-  });
-}
-
-// ===== CHAT =====
 function showChat(){
   loginForm.style.display='none';
   adminPanel.style.display='none';
   chatUl.style.display='flex';
   chatForm.style.display='flex';
   topButtons.style.display='flex';
+  futDiv.style.display='flex';
   clearBtn.style.display=isAdmin?'block':'none';
-}
-
-async function loadHistory(){
-  const r=await fetch('/chat/'+chatId);
-  const msgs=await r.json();
-  chatUl.innerHTML='';
-  msgs.forEach(showMsg);
 }
 
 function showMsg(m){
   const li=document.createElement('li');
-  li.className=
-    m.author==='Admin'?'admin':
-    m.author==='Player'?'player':'client';
-  li.innerHTML=`<b>${m.author}</b><br>${m.text}
-    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
+  li.className=m.author==='Admin'?'admin':m.author==='Player'?'player':'client';
+  li.innerHTML=`<b>${m.author}</b><br>${m.text}<div class="time">${new Date(m.time).toLocaleString()}</div>`;
   chatUl.appendChild(li);
   chatUl.scrollTop=chatUl.scrollHeight;
 }
 
+async function loadHistory(){
+  const r=await fetch('/chat/'+chatId);
+  (await r.json()).forEach(showMsg);
+}
+
 chatForm.onsubmit=e=>{
   e.preventDefault();
-  if(!msgInput.value.trim())return;
-  socket.emit('sendMessage',msgInput.value);
+  if(msgInput.value.trim()) socket.emit('sendMessage',msgInput.value);
   msgInput.value='';
 };
 
 socket.on('receiveMessage',showMsg);
 
-// ===== EXIT =====
-exitBtn.onclick=()=>{
-  chatUl.style.display='none';
-  chatForm.style.display='none';
-  topButtons.style.display='none';
+socket.on('futUpdate',data=>{
+  wins=data.wins;
+  losses=data.losses;
+  document.getElementById('wins').textContent=wins;
+  document.getElementById('losses').textContent=losses;
+});
 
-  if(isAdmin){
-    loadAdminPanel();
-  }else{
-    localStorage.removeItem('ufs_session');
-    location.reload();
-  }
-};
-
-clearBtn.onclick=()=>socket.emit('clearChat');
-socket.on('chatCleared',()=>chatUl.innerHTML='');
-
-// ===== SAVE SESSION =====
-function saveSession(){
-  localStorage.setItem('ufs_session',JSON.stringify({
-    chatId,userType,password
-  }));
-}
+['winsPlus','winsMinus','lossesPlus','lossesMinus'].forEach(id=>{
+  document.getElementById(id).onclick=()=>{
+    if(userType!=='player') return;
+    if(id==='winsPlus'&&wins<15)wins++;
+    if(id==='winsMinus'&&wins>0)wins--;
+    if(id==='lossesPlus'&&losses<15)losses++;
+    if(id==='lossesMinus'&&losses>0)losses--;
+    socket.emit('updateFut',{wins,losses});
+  };
+});
 </script>
 </body>
 </html>
-
-
