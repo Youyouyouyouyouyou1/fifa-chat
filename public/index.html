@@ -20,6 +20,44 @@ body{
 }
 h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
 
+/* ===== CONTADOR ===== */
+#counterBar{
+  display:none;
+  align-items:center;
+  gap:30px;
+  margin-bottom:1rem
+}
+.counterBox{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-width:90px
+}
+.counterNum{
+  font-size:3rem;
+  font-weight:bold;
+  line-height:1
+}
+.counterLabel{
+  font-size:.9rem;
+  opacity:.7
+}
+.counterBtns{
+  display:flex;
+  gap:6px;
+  margin-top:4px
+}
+.counterBtns button{
+  padding:4px 10px;
+  font-size:1.2rem
+}
+#counterLogo{
+  width:55px;
+  height:55px;
+  object-fit:contain
+}
+
+/* ===== UI GENERAL ===== */
 button,input,select{
   padding:12px;
   border-radius:8px;
@@ -98,6 +136,29 @@ button{
 
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
+<!-- ===== CONTADOR ===== -->
+<div id="counterBar">
+  <div class="counterBox">
+    <div id="wins" class="counterNum">0</div>
+    <div class="counterLabel">WINS</div>
+    <div id="winsBtns" class="counterBtns">
+      <button onclick="updateCounter(1,0)">+</button>
+      <button onclick="updateCounter(-1,0)">−</button>
+    </div>
+  </div>
+
+  <img id="counterLogo" src="/fut.png">
+
+  <div class="counterBox">
+    <div id="losses" class="counterNum">0</div>
+    <div class="counterLabel">LOSSES</div>
+    <div id="lossesBtns" class="counterBtns">
+      <button onclick="updateCounter(0,1)">+</button>
+      <button onclick="updateCounter(0,-1)">−</button>
+    </div>
+  </div>
+</div>
+
 <div id="topButtons">
   <button id="exitBtn">Exit</button>
   <button id="clearBtn">Clear Chat</button>
@@ -135,6 +196,7 @@ const chatForm = document.getElementById('chatForm');
 const msgInput = document.getElementById('msg');
 const topButtons = document.getElementById('topButtons');
 const clearBtn = document.getElementById('clearBtn');
+const counterBar = document.getElementById('counterBar');
 
 let chatId=null;
 let userType=null;
@@ -181,7 +243,6 @@ socket.on('connect', ()=>{
   }
 });
 
-// ===== JOIN (ÚNICO Y CORRECTO) =====
 function joinChat(id,type,pass){
   pendingJoin={id,type};
   socket.emit('joinChat',{id,type,password:pass});
@@ -193,6 +254,16 @@ socket.on('joined', ()=>{
   loadHistory();
   pendingJoin=null;
 });
+
+// ===== CONTADOR =====
+socket.on('counterUpdate', data=>{
+  document.getElementById('wins').textContent=data.wins;
+  document.getElementById('losses').textContent=data.losses;
+});
+
+function updateCounter(w,l){
+  socket.emit('updateCounter',{ winsDelta:w, lossesDelta:l });
+}
 
 // ===== ADMIN PANEL =====
 async function loadAdminPanel(){
@@ -223,7 +294,13 @@ function showChat(){
   chatUl.style.display='flex';
   chatForm.style.display='flex';
   topButtons.style.display='flex';
+  counterBar.style.display='flex';
   clearBtn.style.display=isAdmin?'block':'none';
+
+  if(userType!=='player'){
+    document.getElementById('winsBtns').style.display='none';
+    document.getElementById('lossesBtns').style.display='none';
+  }
 }
 
 async function loadHistory(){
@@ -258,6 +335,7 @@ exitBtn.onclick=()=>{
   chatUl.style.display='none';
   chatForm.style.display='none';
   topButtons.style.display='none';
+  counterBar.style.display='none';
 
   if(isAdmin){
     loadAdminPanel();
@@ -270,7 +348,6 @@ exitBtn.onclick=()=>{
 clearBtn.onclick=()=>socket.emit('clearChat');
 socket.on('chatCleared',()=>chatUl.innerHTML='');
 
-// ===== SAVE SESSION =====
 function saveSession(){
   localStorage.setItem('ufs_session',JSON.stringify({
     chatId,userType,password
