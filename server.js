@@ -13,7 +13,6 @@ const io = socketIo(server, {
   cors: { origin: '*', methods: ['GET','POST'] }
 });
 
-// ================== MONGODB ==================
 mongoose.connect(
   'mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
   { useNewUrlParser:true, useUnifiedTopology:true }
@@ -21,7 +20,7 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
-// ================== MODELS ==================
+// ===== SCHEMAS =====
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -30,89 +29,82 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
-// 🔥 NUEVO: CONTADOR
-const scoreSchema = new mongoose.Schema({
-  chatId: { type:String, unique:true },
-  wins: { type:Number, default:0 },
-  losses: { type:Number, default:0 }
+const chatSchema = new mongoose.Schema({
+  chatId:{ type:String, unique:true },
+  victorias:{ type:Number, default:0 },
+  derrotas:{ type:Number, default:0 }
 });
-const Score = mongoose.model('Score', scoreSchema);
+const Chat = mongoose.model('Chat', chatSchema);
 
 app.use(express.static(__dirname + '/public'));
 
-// ================== HISTORIAL CHAT ==================
+// ===== HISTORIAL CHAT =====
 app.get('/chat/:chatId', async (req,res)=>{
-  try{
-    const messages = await Message.find({ chatId:req.params.chatId }).sort({ time:1 });
-    res.json(messages);
-  }catch(e){
-    res.status(500).json({ error:'Error fetching messages' });
-  }
+  const messages = await Message
+    .find({ chatId:req.params.chatId })
+    .sort({ time:1 });
+  res.json(messages);
 });
 
-// ================== ADMIN: LISTA DE CHATS ==================
+// ===== ADMIN LIST =====
 app.get('/api/admin/chats', async (req,res)=>{
-  try{
-    const chats = await Message.aggregate([
-      { $sort:{ time:-1 } },
-      {
-        $group:{
-          _id:'$chatId',
-          lastMessage:{ $first:'$text' },
-          lastAuthor:{ $first:'$author' },
-          lastTime:{ $first:'$time' }
-        }
-      },
-      { $sort:{ lastTime:-1 } }
-    ]);
+  const chats = await Message.aggregate([
+    { $sort:{ time:-1 } },
+    {
+      $group:{
+        _id:'$chatId',
+        lastMessage:{ $first:'$text' },
+        lastAuthor:{ $first:'$author' },
+        lastTime:{ $first:'$time' }
+      }
+    }
+  ]);
 
-    res.json(chats.map(c=>({
-      chatId:c._id,
-      lastMessage:c.lastMessage,
-      lastAuthor:c.lastAuthor,
-      lastTime:c.lastTime
-    })));
-  }catch(e){
-    res.status(500).json({ error:'Error loading chats' });
-  }
+  res.json(chats.map(c=>({
+    chatId:c._id,
+    lastMessage:c.lastMessage,
+    lastAuthor:c.lastAuthor,
+    lastTime:c.lastTime
+  })));
 });
 
-// ================== PASSWORDS ==================
+// ===== PASSWORDS =====
 const passwords = {
   player:'JAHEUhdjjdbc234hd',
   admin:'somoslosputosamos23dhf1A'
 };
 
-// ================== SOCKET ==================
+// ===== SOCKET =====
 io.on('connection', socket => {
 
   socket.on('joinChat', async ({ type,id,password })=>{
     if(!type || !id) return;
 
-    if((type==='player'||type==='admin') && passwords[type]!==password){
-      return;
-    }
+    if((type==='player'||type==='admin') && passwords[type]!==password) return;
 
     socket.userType = type;
     socket.chatId = id;
     socket.join(id);
 
-    // 🔥 asegurar contador
-    let score = await Score.findOne({ chatId:id });
-    if(!score){
-      score = await new Score({ chatId:id }).save();
+    let chat = await Chat.findOne({ chatId:id });
+    if(!chat){
+      chat = await Chat.create({ chatId:id });
     }
 
-    socket.emit('joined');
-    socket.emit('scoreUpdate', score);
+    socket.emit('counterInit',{
+      victorias:chat.victorias,
+      derrotas:chat.derrotas
+    });
+
+    socket.emit('joined',{ success:true });
   });
 
   socket.on('sendMessage', async text=>{
-    if(!socket.chatId || !socket.userType) return;
+    if(!socket.chatId) return;
 
     const author =
-      socket.userType==='client' ? 'Client' :
-      socket.userType==='player' ? 'Player' : 'Admin';
+      socket.userType==='client'?'Client':
+      socket.userType==='player'?'Player':'Admin';
 
     const msg = {
       chatId:socket.chatId,
@@ -125,18 +117,20 @@ io.on('connection', socket => {
     io.to(socket.chatId).emit('receiveMessage', msg);
   });
 
-  // 🔥 ACTUALIZAR CONTADOR (SOLO PLAYER)
-  socket.on('updateScore', async ({ field, delta })=>{
+  socket.on('updateCounter', async ({ field, delta })=>{
     if(socket.userType!=='player') return;
-    if(!['wins','losses'].includes(field)) return;
+    if(!['victorias','derrotas'].includes(field)) return;
 
-    const score = await Score.findOneAndUpdate(
-      { chatId:socket.chatId },
-      { $inc:{ [field]: delta } },
-      { new:true }
-    );
+    const chat = await Chat.findOne({ chatId:socket.chatId });
+    if(!chat) return;
 
-    io.to(socket.chatId).emit('scoreUpdate', score);
+    chat[field] = Math.max(0, chat[field] + delta);
+    await chat.save();
+
+    io.to(socket.chatId).emit('counterUpdate',{
+      victorias:chat.victorias,
+      derrotas:chat.derrotas
+    });
   });
 
   socket.on('clearChat', async ()=>{
@@ -149,3 +143,4 @@ io.on('connection', socket => {
 server.listen(3000,'0.0.0.0',()=>{
   console.log('🚀 Server running on port 3000');
 });
+
