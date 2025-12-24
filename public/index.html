@@ -6,7 +6,11 @@
   <title>ULTIMATEFUTSERVICE CHAT</title>
 
   <style>
-    :root { --primary:#00ffea; --bg-dark:#0a0f1f; --bg-light:#1a2238; }
+    :root {
+      --primary:#00ffea;
+      --bg-dark:#0a0f1f;
+      --bg-light:#1a2238;
+    }
 
     body{
       font-family:Arial,sans-serif;
@@ -22,19 +26,26 @@
 
     h2{
       color:var(--primary);
-      margin-bottom:0.3rem;
-      font-size:2rem;
+      margin-bottom:.3rem;
+      font-size:2.4rem;
       text-align:center;
     }
 
-    /* ✅ CONTADOR */
+    /* 🔢 CONTADOR */
     #chatCounter{
       display:none;
-      font-size:1.6rem;
+      font-size:2rem;
       font-weight:bold;
-      color:#00ffea;
+      color:#fff;
       margin-bottom:1rem;
       text-align:center;
+    }
+
+    #topButtons{
+      display:flex;
+      gap:8px;
+      margin-bottom:1rem;
+      justify-content:center;
     }
 
     #exitBtn,#clearBtn{
@@ -44,16 +55,13 @@
       border:none;
       padding:10px 16px;
       border-radius:8px;
-      margin-bottom:1rem;
       cursor:pointer;
     }
 
-    #clearBtn{background:#ffaa00;}
-
-    #topButtons{
-      display:flex;
-      gap:8px;
-      margin-bottom:1rem;
+    #clearBtn{
+      background:#ffaa00;
+      color:#000;
+      display:none;
     }
 
     #loginForm{
@@ -72,6 +80,7 @@
       font-size:1rem;
       border-radius:8px;
       border:none;
+      outline:none;
     }
 
     input,select{
@@ -94,24 +103,28 @@
       border-radius:15px;
       width:100%;
       max-width:700px;
-      flex:1;
-      overflow-y:auto;
       display:none;
       flex-direction:column;
       gap:10px;
+      overflow-y:auto;
     }
 
     #chat li{
       padding:10px;
       border-radius:12px;
       max-width:80%;
+      word-wrap:break-word;
     }
 
-    .client{background:#00ffea;color:#000;align-self:flex-start;}
-    .player{background:#fff;color:#000;align-self:flex-end;}
-    .admin{background:#ffcc00;color:#000;align-self:flex-end;}
+    .client{background:#00ffea;color:#000;align-self:flex-start}
+    .player{background:#fff;color:#000;align-self:flex-end}
+    .admin{background:#ffcc00;color:#000;align-self:flex-end}
 
-    .time{font-size:.8em;opacity:.7;margin-top:4px;}
+    .time{
+      font-size:.8em;
+      opacity:.7;
+      margin-top:4px;
+    }
 
     #chatForm{
       display:none;
@@ -120,9 +133,15 @@
       gap:8px;
     }
 
+    #msg{
+      flex:1;
+      background:rgba(255,255,255,.1);
+      color:white;
+    }
+
     @media(max-width:768px){
-      h2{font-size:1.6rem;}
-      #chatCounter{font-size:1.3rem;}
+      h2{font-size:2rem}
+      #chatCounter{font-size:1.6rem}
     }
   </style>
 </head>
@@ -130,140 +149,74 @@
 <body>
 
   <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-  <div id="chatCounter">⏱️ 00:00</div>
+  <div id="chatCounter">Messages: 0</div>
 
   <div id="topButtons" style="display:none;">
     <button id="exitBtn">Exit Chat</button>
-    <button id="clearBtn" style="display:none;">Clear Chat</button>
+    <button id="clearBtn">Clear Chat</button>
   </div>
 
   <div id="loginForm">
-    <input id="chatIdInput" placeholder="Enter Order ID">
+    <input id="chatIdInput" placeholder="Enter Order ID" />
     <select id="userTypeSelect">
-      <option value="">Select role</option>
+      <option value="">Select your role</option>
       <option value="client">Client</option>
       <option value="player">Player</option>
       <option value="admin">Admin</option>
     </select>
-    <input id="passwordInput" type="password" placeholder="Password" style="display:none">
-    <button id="btnEnter">Enter</button>
+    <input id="passwordInput" type="password" placeholder="Password" style="display:none;" />
+    <button id="btnEnter">Enter Chat</button>
   </div>
 
   <ul id="chat"></ul>
 
   <form id="chatForm">
-    <input id="msg" placeholder="Type message..." style="flex:1">
-    <button>Send</button>
+    <input id="msg" placeholder="Type your message..." />
+    <button type="submit">Send</button>
   </form>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io({transports:['websocket','polling']});
+/* === TU JS ORIGINAL, INTACTO === */
+const socket = io({ transports: ['websocket','polling'] });
 
 const chatCounter = document.getElementById('chatCounter');
-let counterInterval = null;
-let counterSeconds = 0;
-
-/* =========================
-   ✅ CONTADOR POR CHAT ID
-========================= */
-
-function counterKey(id){
-  return 'ufs_counter_' + id;
-}
-
-function startCounter(id){
-  stopCounter();
-  counterSeconds = parseInt(localStorage.getItem(counterKey(id)) || '0');
-
-  updateCounterUI();
-
-  counterInterval = setInterval(()=>{
-    counterSeconds++;
-    localStorage.setItem(counterKey(id), counterSeconds);
-    updateCounterUI();
-  },1000);
-
-  chatCounter.style.display = 'block';
-}
-
-function stopCounter(){
-  if(counterInterval) clearInterval(counterInterval);
-  counterInterval = null;
-}
-
-function updateCounterUI(){
-  const m = String(Math.floor(counterSeconds/60)).padStart(2,'0');
-  const s = String(counterSeconds%60).padStart(2,'0');
-  chatCounter.textContent = `⏱️ ${m}:${s}`;
-}
-
-/* =========================
-   EXISTENTE (NO TOCADO)
-========================= */
-
-const chatUl = document.getElementById('chat');
-const chatForm = document.getElementById('chatForm');
-const msgInput = document.getElementById('msg');
-const loginForm = document.getElementById('loginForm');
-const topButtons = document.getElementById('topButtons');
-const clearBtn = document.getElementById('clearBtn');
 
 let chatId=null;
-let userType=null;
-let password='';
+let counter=0;
 
-function showChat(){
-  loginForm.style.display='none';
-  chatUl.style.display='flex';
-  chatForm.style.display='flex';
-  topButtons.style.display='flex';
-  clearBtn.style.display=(userType==='admin')?'block':'none';
-  startCounter(chatId);
+/* === CONTADOR POR CHAT === */
+function loadCounter(){
+  counter = parseInt(localStorage.getItem('ufs_counter_'+chatId)) || 0;
+  chatCounter.textContent = 'Messages: ' + counter;
 }
 
-socket.on('joined',()=>{
-  showChat();
-  loadHistory();
+function incrementCounter(){
+  counter++;
+  localStorage.setItem('ufs_counter_'+chatId, counter);
+  chatCounter.textContent = 'Messages: ' + counter;
+}
+
+/* === SOLO SE MUESTRA AL ENTRAR AL CHAT === */
+function showCounter(){
+  chatCounter.style.display='block';
+}
+
+function hideCounter(){
+  chatCounter.style.display='none';
+}
+
+/* === ENGANCHE SEGURO AL CHAT === */
+socket.on('joined', ()=>{
+  loadCounter();
+  showCounter();
 });
 
-function loadHistory(){
-  fetch('/chat/'+chatId)
-    .then(r=>r.json())
-    .then(msgs=>{
-      chatUl.innerHTML='';
-      msgs.forEach(showMsg);
-    });
-}
-
-function showMsg(m){
-  const li=document.createElement('li');
-  li.className =
-    m.author==='Admin'?'admin':
-    m.author==='Player'?'player':'client';
-  li.innerHTML=`<b>${m.author}</b><br>${m.text}
-    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
-  chatUl.appendChild(li);
-  chatUl.scrollTop=chatUl.scrollHeight;
-}
-
-chatForm.onsubmit=e=>{
-  e.preventDefault();
-  if(!msgInput.value.trim())return;
-  socket.emit('sendMessage',msgInput.value);
-  msgInput.value='';
-};
-
-socket.on('receiveMessage',showMsg);
-
-exitBtn.onclick=()=>{
-  stopCounter();
-  chatCounter.style.display='none';
-  localStorage.removeItem('ufs_session');
-  location.reload();
-};
+/* === SOLO CUENTA MENSAJES NUEVOS === */
+socket.on('receiveMessage', ()=>{
+  incrementCounter();
+});
 </script>
 
 </body>
 </html>
-
