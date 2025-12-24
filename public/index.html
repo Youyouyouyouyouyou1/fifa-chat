@@ -51,7 +51,8 @@ button{
   max-width:700px;
   flex:1;
   overflow-y:auto;
-  display:none
+  display:none;
+  flex-direction:column; /* 🔧 CLAVE */
 }
 #chat li{
   padding:10px;
@@ -133,10 +134,11 @@ const clearBtn = document.getElementById('clearBtn');
 
 let chatId=null,userType=null,isAdmin=false;
 
-// ====== SESSION SOLO CLIENT/PLAYER ======
+// ====== RESTORE SESSION (CLIENT / PLAYER) ======
 const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
 if(saved && saved.userType!=='admin'){
-  joinChat(saved.chatId,saved.userType,saved.password);
+  isAdmin=false;
+  joinChat(saved.chatId,saved.userType,saved.password,false);
 }
 
 // ====== UI ======
@@ -161,6 +163,7 @@ btnEnter.onclick=()=>{
   chatId=chatIdInput.value.trim();
   if(!chatId)return alert('Order ID required');
 
+  isAdmin=false;
   joinChat(chatId,userType,pass,true);
 };
 
@@ -168,7 +171,11 @@ btnEnter.onclick=()=>{
 function joinChat(id,type,pass,save){
   socket.emit('joinChat',{id,type,password:pass});
   socket.once('joined',()=>{
-    if(save) localStorage.setItem('ufs_session',JSON.stringify({chatId:id,userType:type,password:pass}));
+    if(save){
+      localStorage.setItem('ufs_session',JSON.stringify({
+        chatId:id,userType:type,password:pass
+      }));
+    }
     showChat();
     loadHistory();
   });
@@ -194,10 +201,15 @@ async function loadAdminPanel(){
   chats.forEach(c=>{
     const d=document.createElement('div');
     d.className='chatItem';
-    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br><small>${new Date(c.lastTime).toLocaleString()}</small>`;
+    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br>
+      <small>${new Date(c.lastTime).toLocaleString()}</small>`;
     d.onclick=()=>{
       chatId=c.chatId;
-      socket.emit('joinChat',{id:chatId,type:'admin',password:passwordInput.value});
+      socket.emit('joinChat',{
+        id:chatId,
+        type:'admin',
+        password:passwordInput.value
+      });
       socket.once('joined',()=>{
         showChat();
         loadHistory();
@@ -217,8 +229,11 @@ async function loadHistory(){
 
 function showMsg(m){
   const li=document.createElement('li');
-  li.className=m.author==='Admin'?'admin':m.author==='Player'?'player':'client';
-  li.innerHTML=`<b>${m.author}</b><br>${m.text}<div class="time">${new Date(m.time).toLocaleString()}</div>`;
+  li.className =
+    m.author==='Admin'?'admin':
+    m.author==='Player'?'player':'client';
+  li.innerHTML=`<b>${m.author}</b><br>${m.text}
+    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
   chatUl.appendChild(li);
   chatUl.scrollTop=chatUl.scrollHeight;
 }
@@ -226,6 +241,7 @@ function showMsg(m){
 // ====== SEND ======
 chatForm.onsubmit=e=>{
   e.preventDefault();
+  if(!msgInput.value.trim())return;
   socket.emit('sendMessage',msgInput.value);
   msgInput.value='';
 };
@@ -237,6 +253,7 @@ exitBtn.onclick=()=>{
   chatUl.style.display='none';
   chatForm.style.display='none';
   topButtons.style.display='none';
+
   if(isAdmin){
     loadAdminPanel();
   }else{
