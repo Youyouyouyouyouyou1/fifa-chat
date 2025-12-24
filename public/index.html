@@ -18,46 +18,42 @@ body{
   margin:0;
   padding:1rem
 }
-h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
+h2{color:var(--primary);margin:.5rem 0;font-size:2.4rem;text-align:center}
 
-/* ===== CONTADOR ===== */
-#counterBar{
+#header{
   display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+#scoreBox{
+  display:flex;
   align-items:center;
   gap:30px;
-  margin-bottom:1rem
+  margin-bottom:10px;
 }
-.counterBox{
+
+.score{
   display:flex;
   flex-direction:column;
   align-items:center;
-  min-width:90px
 }
-.counterNum{
-  font-size:3rem;
+.score span{
+  font-size:2.2rem;
   font-weight:bold;
-  line-height:1
 }
-.counterLabel{
-  font-size:.9rem;
-  opacity:.7
-}
-.counterBtns{
-  display:flex;
-  gap:6px;
-  margin-top:4px
-}
-.counterBtns button{
-  padding:4px 10px;
-  font-size:1.2rem
-}
-#counterLogo{
-  width:55px;
-  height:55px;
-  object-fit:contain
+.score small{opacity:.7}
+
+.score button{
+  margin-top:4px;
+  font-size:1.2rem;
 }
 
-/* ===== UI GENERAL ===== */
+img{
+  height:70px;
+}
+
 button,input,select{
   padding:12px;
   border-radius:8px;
@@ -96,17 +92,6 @@ button{
   flex-direction:column;
 }
 
-#chat li{
-  padding:10px;
-  border-radius:12px;
-  max-width:80%;
-  margin-bottom:8px
-}
-.client{background:#00ffea;color:#000;align-self:flex-start}
-.player{background:#fff;color:#000;align-self:flex-end}
-.admin{background:#ffcc00;color:#000;align-self:flex-end}
-.time{font-size:.8em;opacity:.7}
-
 #chatForm{
   width:100%;
   max-width:700px;
@@ -114,47 +99,31 @@ button{
   gap:8px
 }
 
-#topButtons{
-  display:none;
-  gap:8px;
-  margin-bottom:1rem
-}
+#topButtons{display:none;gap:8px}
 #exitBtn{background:#ff4444;color:#fff}
 #clearBtn{background:#ffaa00;color:#000;display:none}
-
-.chatItem{
-  background:rgba(255,255,255,.1);
-  padding:12px;
-  border-radius:10px;
-  cursor:pointer
-}
-.chatItem:hover{background:rgba(255,255,255,.2)}
 </style>
 </head>
 
 <body>
 
-<h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-
-<!-- ===== CONTADOR ===== -->
-<div id="counterBar">
-  <div class="counterBox">
-    <div id="wins" class="counterNum">0</div>
-    <div class="counterLabel">WINS</div>
-    <div id="winsBtns" class="counterBtns">
-      <button onclick="updateCounter(1,0)">+</button>
-      <button onclick="updateCounter(-1,0)">−</button>
+<div id="header">
+  <h2>ULTIMATEFUTSERVICE CHAT</h2>
+  <div id="scoreBox">
+    <div class="score">
+      <span id="wins">0</span>
+      <small>Wins</small>
+      <button id="winPlus">+</button>
+      <button id="winMinus">-</button>
     </div>
-  </div>
 
-  <img id="counterLogo" src="/logo.png">
+    <img src="fut.png">
 
-  <div class="counterBox">
-    <div id="losses" class="counterNum">0</div>
-    <div class="counterLabel">LOSSES</div>
-    <div id="lossesBtns" class="counterBtns">
-      <button onclick="updateCounter(0,1)">+</button>
-      <button onclick="updateCounter(0,-1)">−</button>
+    <div class="score">
+      <span id="losses">0</span>
+      <small>Losses</small>
+      <button id="lossPlus">+</button>
+      <button id="lossMinus">-</button>
     </div>
   </div>
 </div>
@@ -177,7 +146,6 @@ button{
 </div>
 
 <div id="adminPanel" style="display:none"></div>
-
 <ul id="chat"></ul>
 
 <form id="chatForm">
@@ -187,172 +155,26 @@ button{
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io({transports:['websocket','polling']});
+const socket = io();
 
-const loginForm = document.getElementById('loginForm');
-const adminPanel = document.getElementById('adminPanel');
-const chatUl = document.getElementById('chat');
-const chatForm = document.getElementById('chatForm');
-const msgInput = document.getElementById('msg');
-const topButtons = document.getElementById('topButtons');
-const clearBtn = document.getElementById('clearBtn');
-const counterBar = document.getElementById('counterBar');
+const winsEl = document.getElementById('wins');
+const lossesEl = document.getElementById('losses');
 
-let chatId=null;
-let userType=null;
-let password='';
-let isAdmin=false;
-let pendingJoin=null;
-
-// ===== UI =====
-userTypeSelect.onchange=()=>{
-  passwordInput.style.display =
-    ['player','admin'].includes(userTypeSelect.value)?'block':'none';
-  chatIdInput.style.display =
-    userTypeSelect.value==='admin'?'none':'block';
-};
-
-btnEnter.onclick=()=>{
-  userType=userTypeSelect.value;
-  password=passwordInput.value||'';
-
-  if(userType==='admin'){
-    isAdmin=true;
-    loginForm.style.display='none';
-    loadAdminPanel();
-    return;
-  }
-
-  chatId=chatIdInput.value.trim();
-  if(!chatId) return alert('Order ID required');
-
-  isAdmin=false;
-  saveSession();
-  joinChat(chatId,userType,password);
-};
-
-// ===== SESSION RESTORE =====
-socket.on('connect', ()=>{
-  const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
-  if(saved && saved.userType!=='admin'){
-    chatId=saved.chatId;
-    userType=saved.userType;
-    password=saved.password||'';
-    isAdmin=false;
-    joinChat(chatId,userType,password);
-  }
+socket.on('scoreUpdate', s=>{
+  winsEl.textContent = s.wins;
+  lossesEl.textContent = s.losses;
 });
 
-function joinChat(id,type,pass){
-  pendingJoin={id,type};
-  socket.emit('joinChat',{id,type,password:pass});
-}
-
-socket.on('joined', ()=>{
-  if(!pendingJoin) return;
-  showChat();
-  loadHistory();
-  pendingJoin=null;
-});
-
-// ===== CONTADOR =====
-socket.on('counterUpdate', data=>{
-  document.getElementById('wins').textContent=data.wins;
-  document.getElementById('losses').textContent=data.losses;
-});
-
-function updateCounter(w,l){
-  socket.emit('updateCounter',{ winsDelta:w, lossesDelta:l });
-}
-
-// ===== ADMIN PANEL =====
-async function loadAdminPanel(){
-  adminPanel.innerHTML='<h3>Active Chats</h3>';
-  adminPanel.style.display='flex';
-
-  const res = await fetch('/api/admin/chats');
-  const chats = await res.json();
-
-  chats.forEach(c=>{
-    const d=document.createElement('div');
-    d.className='chatItem';
-    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br>
-      <small>${new Date(c.lastTime).toLocaleString()}</small>`;
-    d.onclick=()=>{
-      chatId=c.chatId;
-      joinChat(chatId,'admin',password);
-      isAdmin=true;
+['winPlus','winMinus','lossPlus','lossMinus'].forEach(id=>{
+  document.getElementById(id).onclick=()=>{
+    const map={
+      winPlus:['wins',1], winMinus:['wins',-1],
+      lossPlus:['losses',1], lossMinus:['losses',-1]
     };
-    adminPanel.appendChild(d);
-  });
-}
-
-// ===== CHAT =====
-function showChat(){
-  loginForm.style.display='none';
-  adminPanel.style.display='none';
-  chatUl.style.display='flex';
-  chatForm.style.display='flex';
-  topButtons.style.display='flex';
-  counterBar.style.display='flex';
-  clearBtn.style.display=isAdmin?'block':'none';
-
-  if(userType!=='player'){
-    document.getElementById('winsBtns').style.display='none';
-    document.getElementById('lossesBtns').style.display='none';
-  }
-}
-
-async function loadHistory(){
-  const r=await fetch('/chat/'+chatId);
-  const msgs=await r.json();
-  chatUl.innerHTML='';
-  msgs.forEach(showMsg);
-}
-
-function showMsg(m){
-  const li=document.createElement('li');
-  li.className=
-    m.author==='Admin'?'admin':
-    m.author==='Player'?'player':'client';
-  li.innerHTML=`<b>${m.author}</b><br>${m.text}
-    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
-  chatUl.appendChild(li);
-  chatUl.scrollTop=chatUl.scrollHeight;
-}
-
-chatForm.onsubmit=e=>{
-  e.preventDefault();
-  if(!msgInput.value.trim())return;
-  socket.emit('sendMessage',msgInput.value);
-  msgInput.value='';
-};
-
-socket.on('receiveMessage',showMsg);
-
-// ===== EXIT =====
-exitBtn.onclick=()=>{
-  chatUl.style.display='none';
-  chatForm.style.display='none';
-  topButtons.style.display='none';
-  counterBar.style.display='none';
-
-  if(isAdmin){
-    loadAdminPanel();
-  }else{
-    localStorage.removeItem('ufs_session');
-    location.reload();
-  }
-};
-
-clearBtn.onclick=()=>socket.emit('clearChat');
-socket.on('chatCleared',()=>chatUl.innerHTML='');
-
-function saveSession(){
-  localStorage.setItem('ufs_session',JSON.stringify({
-    chatId,userType,password
-  }));
-}
+    const [f,d]=map[id];
+    socket.emit('updateScore',{field:f,delta:d});
+  };
+});
 </script>
 </body>
 </html>
