@@ -20,6 +20,7 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
+// ================== MENSAJES ==================
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -28,14 +29,20 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
+// ================== CONTADOR FUT ==================
+const counterSchema = new mongoose.Schema({
+  chatId:String,
+  wins:{ type:Number, default:0 },
+  losses:{ type:Number, default:0 }
+});
+const Counter = mongoose.model('Counter', counterSchema);
+
 app.use(express.static(__dirname + '/public'));
 
 // ================== HISTORIAL CHAT ==================
 app.get('/chat/:chatId', async (req,res)=>{
   try{
-    const messages = await Message
-      .find({ chatId:req.params.chatId })
-      .sort({ time:1 });
+    const messages = await Message.find({ chatId:req.params.chatId }).sort({ time:1 });
     res.json(messages);
   }catch(e){
     res.status(500).json({ error:'Error fetching messages' });
@@ -78,7 +85,7 @@ const passwords = {
 // ================== SOCKET ==================
 io.on('connection', socket => {
 
-  socket.on('joinChat', ({ type,id,password })=>{
+  socket.on('joinChat', async ({ type,id,password })=>{
     if(!type || !id) return socket.emit('errorMsg','Missing data');
 
     if((type==='player'||type==='admin') && passwords[type]!==password){
@@ -88,7 +95,32 @@ io.on('connection', socket => {
     socket.userType = type;
     socket.chatId = id;
     socket.join(id);
+
+    // 👉 crear contador si no existe
+    let counter = await Counter.findOne({ chatId:id });
+    if(!counter){
+      counter = await new Counter({ chatId:id }).save();
+    }
+
+    socket.emit('counterUpdate', counter);
     socket.emit('joined',{ success:true });
+  });
+
+  socket.on('updateCounter', async ({ winsDelta, lossesDelta })=>{
+    if(socket.userType!=='player') return;
+
+    const counter = await Counter.findOneAndUpdate(
+      { chatId:socket.chatId },
+      {
+        $inc:{
+          wins:winsDelta || 0,
+          losses:lossesDelta || 0
+        }
+      },
+      { new:true }
+    );
+
+    io.to(socket.chatId).emit('counterUpdate', counter);
   });
 
   socket.on('sendMessage', async text=>{
@@ -98,13 +130,7 @@ io.on('connection', socket => {
       socket.userType==='client' ? 'Client' :
       socket.userType==='player' ? 'Player' : 'Admin';
 
-    const msg = {
-      chatId:socket.chatId,
-      author,
-      text,
-      time:new Date()
-    };
-
+    const msg = { chatId:socket.chatId, author, text, time:new Date() };
     await new Message(msg).save();
     io.to(socket.chatId).emit('receiveMessage', msg);
   });
