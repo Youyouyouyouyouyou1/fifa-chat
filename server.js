@@ -20,7 +20,7 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
-/* ================== MODELOS ================== */
+/* ================== SCHEMAS ================== */
 
 const messageSchema = new mongoose.Schema({
   chatId:String,
@@ -30,19 +30,22 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
+/* 🔹 NUEVO: COUNTER */
 const counterSchema = new mongoose.Schema({
-  chatId: { type:String, unique:true },
-  wins: { type:Number, default:0 },
-  losses: { type:Number, default:0 }
+  chatId:{ type:String, unique:true },
+  wins:{ type:Number, default:0 },
+  losses:{ type:Number, default:0 }
 });
-const MatchCounter = mongoose.model('MatchCounter', counterSchema);
+const Counter = mongoose.model('Counter', counterSchema);
 
 app.use(express.static(__dirname + '/public'));
 
 /* ================== HISTORIAL CHAT ================== */
 app.get('/chat/:chatId', async (req,res)=>{
   try{
-    const messages = await Message.find({ chatId:req.params.chatId }).sort({ time:1 });
+    const messages = await Message
+      .find({ chatId:req.params.chatId })
+      .sort({ time:1 });
     res.json(messages);
   }catch(e){
     res.status(500).json({ error:'Error fetching messages' });
@@ -96,12 +99,16 @@ io.on('connection', socket => {
     socket.chatId = id;
     socket.join(id);
 
-    // crear contador si no existe
-    await MatchCounter.findOneAndUpdate(
-      { chatId:id },
-      { $setOnInsert:{ wins:0, losses:0 } },
-      { upsert:true }
-    );
+    /* 🔹 ENVIAR CONTADOR AL ENTRAR */
+    let counter = await Counter.findOne({ chatId:id });
+    if(!counter){
+      counter = await Counter.create({ chatId:id });
+    }
+
+    socket.emit('counterUpdate',{
+      wins:counter.wins,
+      losses:counter.losses
+    });
 
     socket.emit('joined',{ success:true });
   });
@@ -124,30 +131,25 @@ io.on('connection', socket => {
     io.to(socket.chatId).emit('receiveMessage', msg);
   });
 
-  /* ===== CONTADOR FUT CHAMPIONS ===== */
+  /* 🔹 ACTUALIZAR CONTADOR (SOLO PLAYER) */
+  socket.on('updateCounter', async ({ type,delta })=>{
+    if(socket.userType!=='player') return;
+    if(!['wins','losses'].includes(type)) return;
 
-  socket.on('getCounter', async ()=>{
-    if(!socket.chatId) return;
-    const counter = await MatchCounter.findOne({ chatId:socket.chatId });
-    socket.emit('counterUpdated', counter);
+    let counter = await Counter.findOne({ chatId:socket.chatId });
+    if(!counter){
+      counter = await Counter.create({ chatId:socket.chatId });
+    }
+
+    counter[type] = Math.min(15, Math.max(0, counter[type] + delta));
+    await counter.save();
+
+    io.to(socket.chatId).emit('counterUpdate',{
+      wins:counter.wins,
+      losses:counter.losses
+    });
   });
 
-  socket.on('updateCounter', async ({ wins, losses })=>{
-    if(socket.userType !== 'player') return;
-
-    const w = Math.max(0, Math.min(15, wins));
-    const l = Math.max(0, Math.min(15, losses));
-
-    const counter = await MatchCounter.findOneAndUpdate(
-      { chatId:socket.chatId },
-      { wins:w, losses:l },
-      { new:true }
-    );
-
-    io.to(socket.chatId).emit('counterUpdated', counter);
-  });
-
-  /* ===== CLEAR CHAT ===== */
   socket.on('clearChat', async ()=>{
     if(socket.userType!=='admin') return;
     await Message.deleteMany({ chatId:socket.chatId });
