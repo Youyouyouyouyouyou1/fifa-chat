@@ -18,7 +18,14 @@ body{
   margin:0;
   padding:1rem
 }
-h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
+
+/* 🔥 TÍTULO MÁS GRANDE */
+h2{
+  color:var(--primary);
+  margin:.8rem 0;
+  font-size:2.4rem;
+  letter-spacing:1px;
+}
 
 button,input,select{
   padding:10px;
@@ -99,20 +106,21 @@ button{
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
 <!-- ===== CONTADOR ===== -->
-<div id="counterBox" style="display:none;align-items:center;gap:40px;margin-bottom:10px">
+<div id="counterBox" style="display:none;align-items:center;gap:60px;margin-bottom:15px">
   <div style="text-align:center">
     <button id="vMinus">-</button>
-    <div><b>VICTORIAS</b></div>
-    <div id="victorias">0</div>
+    <div style="font-size:.7rem;opacity:.7;letter-spacing:1px">WINS</div>
+    <div id="victorias" style="font-size:2.4rem;font-weight:bold">0</div>
     <button id="vPlus">+</button>
   </div>
 
-  <img src="/fut.png" style="height:60px">
+  <!-- 🖼 FUT LOGO MÁS GRANDE -->
+  <img src="/fut.png" style="height:95px">
 
   <div style="text-align:center">
     <button id="dMinus">-</button>
-    <div><b>DERROTAS</b></div>
-    <div id="derrotas">0</div>
+    <div style="font-size:.7rem;opacity:.7;letter-spacing:1px">LOSSES</div>
+    <div id="derrotas" style="font-size:2.4rem;font-weight:bold">0</div>
     <button id="dPlus">+</button>
   </div>
 </div>
