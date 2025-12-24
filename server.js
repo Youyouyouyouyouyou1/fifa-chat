@@ -13,6 +13,7 @@ const io = socketIo(server, {
   cors: { origin: '*', methods: ['GET','POST'] }
 });
 
+// ================== MONGODB ==================
 mongoose.connect(
   'mongodb+srv://ultimatefutservice:7KLKDc0fqYKYAlZc@cluster0.shrqoco.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
   { useNewUrlParser:true, useUnifiedTopology:true }
@@ -20,7 +21,7 @@ mongoose.connect(
 .then(()=>console.log('✅ MongoDB connected'))
 .catch(err=>console.error(err));
 
-// ================== MENSAJES ==================
+// ================== MODELS ==================
 const messageSchema = new mongoose.Schema({
   chatId:String,
   author:String,
@@ -29,13 +30,13 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
-// ================== CONTADOR FUT ==================
-const counterSchema = new mongoose.Schema({
-  chatId:String,
-  wins:{ type:Number, default:0 },
-  losses:{ type:Number, default:0 }
+// 🔥 NUEVO: CONTADOR
+const scoreSchema = new mongoose.Schema({
+  chatId: { type:String, unique:true },
+  wins: { type:Number, default:0 },
+  losses: { type:Number, default:0 }
 });
-const Counter = mongoose.model('Counter', counterSchema);
+const Score = mongoose.model('Score', scoreSchema);
 
 app.use(express.static(__dirname + '/public'));
 
@@ -86,41 +87,24 @@ const passwords = {
 io.on('connection', socket => {
 
   socket.on('joinChat', async ({ type,id,password })=>{
-    if(!type || !id) return socket.emit('errorMsg','Missing data');
+    if(!type || !id) return;
 
     if((type==='player'||type==='admin') && passwords[type]!==password){
-      return socket.emit('errorMsg','Incorrect password');
+      return;
     }
 
     socket.userType = type;
     socket.chatId = id;
     socket.join(id);
 
-    // 👉 crear contador si no existe
-    let counter = await Counter.findOne({ chatId:id });
-    if(!counter){
-      counter = await new Counter({ chatId:id }).save();
+    // 🔥 asegurar contador
+    let score = await Score.findOne({ chatId:id });
+    if(!score){
+      score = await new Score({ chatId:id }).save();
     }
 
-    socket.emit('counterUpdate', counter);
-    socket.emit('joined',{ success:true });
-  });
-
-  socket.on('updateCounter', async ({ winsDelta, lossesDelta })=>{
-    if(socket.userType!=='player') return;
-
-    const counter = await Counter.findOneAndUpdate(
-      { chatId:socket.chatId },
-      {
-        $inc:{
-          wins:winsDelta || 0,
-          losses:lossesDelta || 0
-        }
-      },
-      { new:true }
-    );
-
-    io.to(socket.chatId).emit('counterUpdate', counter);
+    socket.emit('joined');
+    socket.emit('scoreUpdate', score);
   });
 
   socket.on('sendMessage', async text=>{
@@ -130,9 +114,29 @@ io.on('connection', socket => {
       socket.userType==='client' ? 'Client' :
       socket.userType==='player' ? 'Player' : 'Admin';
 
-    const msg = { chatId:socket.chatId, author, text, time:new Date() };
+    const msg = {
+      chatId:socket.chatId,
+      author,
+      text,
+      time:new Date()
+    };
+
     await new Message(msg).save();
     io.to(socket.chatId).emit('receiveMessage', msg);
+  });
+
+  // 🔥 ACTUALIZAR CONTADOR (SOLO PLAYER)
+  socket.on('updateScore', async ({ field, delta })=>{
+    if(socket.userType!=='player') return;
+    if(!['wins','losses'].includes(field)) return;
+
+    const score = await Score.findOneAndUpdate(
+      { chatId:socket.chatId },
+      { $inc:{ [field]: delta } },
+      { new:true }
+    );
+
+    io.to(socket.chatId).emit('scoreUpdate', score);
   });
 
   socket.on('clearChat', async ()=>{
