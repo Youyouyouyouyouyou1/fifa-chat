@@ -1,222 +1,331 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ULTIMATEFUTSERVICE CHAT</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ULTIMATEFUTSERVICE CHAT</title>
 
-  <style>
-    :root {
-      --primary:#00ffea;
-      --bg-dark:#0a0f1f;
-      --bg-light:#1a2238;
-    }
+<style>
+:root{--primary:#00ffea;--bg-dark:#0a0f1f;--bg-light:#1a2238}
+body{
+  font-family:Arial,sans-serif;
+  background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+  padding:1rem
+}
+h2{color:var(--primary);margin:.5rem 0;font-size:1.8rem}
 
-    body{
-      font-family:Arial,sans-serif;
-      background:linear-gradient(145deg,var(--bg-dark),var(--bg-light));
-      color:#fff;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100vh;
-      margin:0;
-      padding:1rem;
-    }
+button,input,select{
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  font-size:1rem
+}
+button{
+  background:var(--primary);
+  color:#000;
+  font-weight:bold;
+  cursor:pointer
+}
 
-    h2{
-      color:var(--primary);
-      margin-bottom:.3rem;
-      font-size:2.4rem;
-      text-align:center;
-    }
+#loginForm,#adminPanel{
+  background:rgba(0,0,0,.6);
+  padding:2rem;
+  border-radius:15px;
+  width:100%;
+  max-width:400px;
+  display:flex;
+  flex-direction:column;
+  gap:1rem
+}
 
-    /* 🔢 CONTADOR */
-    #chatCounter{
-      display:none;
-      font-size:2rem;
-      font-weight:bold;
-      color:#fff;
-      margin-bottom:1rem;
-      text-align:center;
-    }
+#chat{
+  list-style:none;
+  padding:1rem;
+  margin:1rem auto;
+  background:rgba(0,0,0,.6);
+  border-radius:15px;
+  width:100%;
+  max-width:700px;
+  flex:1;
+  overflow-y:auto;
+  display:none;
+  flex-direction:column;
+}
 
-    #topButtons{
-      display:flex;
-      gap:8px;
-      margin-bottom:1rem;
-      justify-content:center;
-    }
+#chat li{
+  padding:10px;
+  border-radius:12px;
+  max-width:80%;
+  margin-bottom:8px
+}
+.client{background:#00ffea;color:#000;align-self:flex-start}
+.player{background:#fff;color:#000;align-self:flex-end}
+.admin{background:#ffcc00;color:#000;align-self:flex-end}
+.time{font-size:.8em;opacity:.7}
 
-    #exitBtn,#clearBtn{
-      background:#ff4444;
-      color:white;
-      font-weight:bold;
-      border:none;
-      padding:10px 16px;
-      border-radius:8px;
-      cursor:pointer;
-    }
+#chatForm{
+  width:100%;
+  max-width:700px;
+  display:none;
+  gap:8px
+}
 
-    #clearBtn{
-      background:#ffaa00;
-      color:#000;
-      display:none;
-    }
+#topButtons{
+  display:none;
+  gap:8px;
+  margin-bottom:1rem
+}
+#exitBtn{background:#ff4444;color:#fff}
+#clearBtn{background:#ffaa00;color:#000;display:none}
 
-    #loginForm{
-      background:rgba(0,0,0,.6);
-      padding:2rem;
-      border-radius:15px;
-      width:100%;
-      max-width:400px;
-      display:flex;
-      flex-direction:column;
-      gap:1rem;
-    }
-
-    input,select,button{
-      padding:12px;
-      font-size:1rem;
-      border-radius:8px;
-      border:none;
-      outline:none;
-    }
-
-    input,select{
-      background:rgba(255,255,255,.1);
-      color:white;
-    }
-
-    button{
-      background:var(--primary);
-      color:#000;
-      font-weight:bold;
-      cursor:pointer;
-    }
-
-    #chat{
-      list-style:none;
-      padding:1rem;
-      margin:1rem auto;
-      background:rgba(0,0,0,.6);
-      border-radius:15px;
-      width:100%;
-      max-width:700px;
-      display:none;
-      flex-direction:column;
-      gap:10px;
-      overflow-y:auto;
-    }
-
-    #chat li{
-      padding:10px;
-      border-radius:12px;
-      max-width:80%;
-      word-wrap:break-word;
-    }
-
-    .client{background:#00ffea;color:#000;align-self:flex-start}
-    .player{background:#fff;color:#000;align-self:flex-end}
-    .admin{background:#ffcc00;color:#000;align-self:flex-end}
-
-    .time{
-      font-size:.8em;
-      opacity:.7;
-      margin-top:4px;
-    }
-
-    #chatForm{
-      display:none;
-      width:100%;
-      max-width:700px;
-      gap:8px;
-    }
-
-    #msg{
-      flex:1;
-      background:rgba(255,255,255,.1);
-      color:white;
-    }
-
-    @media(max-width:768px){
-      h2{font-size:2rem}
-      #chatCounter{font-size:1.6rem}
-    }
-  </style>
+.chatItem{
+  background:rgba(255,255,255,.1);
+  padding:12px;
+  border-radius:10px;
+  cursor:pointer
+}
+.chatItem:hover{background:rgba(255,255,255,.2)}
+</style>
 </head>
 
 <body>
 
-  <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
-  <div id="chatCounter">Messages: 0</div>
+<h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
-  <div id="topButtons" style="display:none;">
-    <button id="exitBtn">Exit Chat</button>
-    <button id="clearBtn">Clear Chat</button>
+<!-- ===== CONTADOR ===== -->
+<div id="counterBox" style="display:none;align-items:center;gap:40px;margin-bottom:10px">
+  <div style="text-align:center">
+    <button id="vMinus">-</button>
+    <div><b>VICTORIAS</b></div>
+    <div id="victorias">0</div>
+    <button id="vPlus">+</button>
   </div>
 
-  <div id="loginForm">
-    <input id="chatIdInput" placeholder="Enter Order ID" />
-    <select id="userTypeSelect">
-      <option value="">Select your role</option>
-      <option value="client">Client</option>
-      <option value="player">Player</option>
-      <option value="admin">Admin</option>
-    </select>
-    <input id="passwordInput" type="password" placeholder="Password" style="display:none;" />
-    <button id="btnEnter">Enter Chat</button>
+  <img src="/fut.png" style="height:60px">
+
+  <div style="text-align:center">
+    <button id="dMinus">-</button>
+    <div><b>DERROTAS</b></div>
+    <div id="derrotas">0</div>
+    <button id="dPlus">+</button>
   </div>
+</div>
 
-  <ul id="chat"></ul>
+<div id="topButtons">
+  <button id="exitBtn">Exit</button>
+  <button id="clearBtn">Clear Chat</button>
+</div>
 
-  <form id="chatForm">
-    <input id="msg" placeholder="Type your message..." />
-    <button type="submit">Send</button>
-  </form>
+<div id="loginForm">
+  <input id="chatIdInput" placeholder="Enter Order ID">
+  <select id="userTypeSelect">
+    <option value="">Select role</option>
+    <option value="client">Client</option>
+    <option value="player">Player</option>
+    <option value="admin">Admin</option>
+  </select>
+  <input id="passwordInput" type="password" placeholder="Password" style="display:none">
+  <button id="btnEnter">Enter</button>
+</div>
+
+<div id="adminPanel" style="display:none"></div>
+
+<ul id="chat"></ul>
+
+<form id="chatForm">
+  <input id="msg" placeholder="Type message..." style="flex:1">
+  <button>Send</button>
+</form>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* === TU JS ORIGINAL, INTACTO === */
-const socket = io({ transports: ['websocket','polling'] });
+const socket = io({transports:['websocket','polling']});
 
-const chatCounter = document.getElementById('chatCounter');
+const loginForm = document.getElementById('loginForm');
+const adminPanel = document.getElementById('adminPanel');
+const chatUl = document.getElementById('chat');
+const chatForm = document.getElementById('chatForm');
+const msgInput = document.getElementById('msg');
+const topButtons = document.getElementById('topButtons');
+const clearBtn = document.getElementById('clearBtn');
+
+const counterBox = document.getElementById('counterBox');
+const vPlus = document.getElementById('vPlus');
+const vMinus = document.getElementById('vMinus');
+const dPlus = document.getElementById('dPlus');
+const dMinus = document.getElementById('dMinus');
+const vSpan = document.getElementById('victorias');
+const dSpan = document.getElementById('derrotas');
 
 let chatId=null;
-let counter=0;
+let userType=null;
+let password='';
+let isAdmin=false;
+let pendingJoin=null;
 
-/* === CONTADOR POR CHAT === */
-function loadCounter(){
-  counter = parseInt(localStorage.getItem('ufs_counter_'+chatId)) || 0;
-  chatCounter.textContent = 'Messages: ' + counter;
+// ===== UI =====
+userTypeSelect.onchange=()=>{
+  passwordInput.style.display =
+    ['player','admin'].includes(userTypeSelect.value)?'block':'none';
+  chatIdInput.style.display =
+    userTypeSelect.value==='admin'?'none':'block';
+};
+
+btnEnter.onclick=()=>{
+  userType=userTypeSelect.value;
+  password=passwordInput.value||'';
+
+  if(userType==='admin'){
+    isAdmin=true;
+    loginForm.style.display='none';
+    loadAdminPanel();
+    return;
+  }
+
+  chatId=chatIdInput.value.trim();
+  if(!chatId) return alert('Order ID required');
+
+  isAdmin=false;
+  saveSession();
+  joinChat(chatId,userType,password);
+};
+
+// ===== SESSION RESTORE =====
+socket.on('connect', ()=>{
+  const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
+  if(saved && saved.userType!=='admin'){
+    chatId=saved.chatId;
+    userType=saved.userType;
+    password=saved.password||'';
+    isAdmin=false;
+    joinChat(chatId,userType,password);
+  }
+});
+
+// ===== JOIN =====
+function joinChat(id,type,pass){
+  pendingJoin={id,type};
+  socket.emit('joinChat',{id,type,password:pass});
 }
 
-function incrementCounter(){
-  counter++;
-  localStorage.setItem('ufs_counter_'+chatId, counter);
-  chatCounter.textContent = 'Messages: ' + counter;
-}
-
-/* === SOLO SE MUESTRA AL ENTRAR AL CHAT === */
-function showCounter(){
-  chatCounter.style.display='block';
-}
-
-function hideCounter(){
-  chatCounter.style.display='none';
-}
-
-/* === ENGANCHE SEGURO AL CHAT === */
 socket.on('joined', ()=>{
-  loadCounter();
-  showCounter();
+  if(!pendingJoin) return;
+  showChat();
+  loadHistory();
+  pendingJoin=null;
 });
 
-/* === SOLO CUENTA MENSAJES NUEVOS === */
-socket.on('receiveMessage', ()=>{
-  incrementCounter();
+// ===== ADMIN PANEL =====
+async function loadAdminPanel(){
+  adminPanel.innerHTML='<h3>Active Chats</h3>';
+  adminPanel.style.display='flex';
+
+  const res = await fetch('/api/admin/chats');
+  const chats = await res.json();
+
+  chats.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='chatItem';
+    d.innerHTML=`<strong>${c.chatId}</strong><br>${c.lastMessage||''}<br>
+      <small>${new Date(c.lastTime).toLocaleString()}</small>`;
+    d.onclick=()=>{
+      chatId=c.chatId;
+      joinChat(chatId,'admin',password);
+      isAdmin=true;
+    };
+    adminPanel.appendChild(d);
+  });
+}
+
+// ===== CHAT =====
+function showChat(){
+  loginForm.style.display='none';
+  adminPanel.style.display='none';
+  chatUl.style.display='flex';
+  chatForm.style.display='flex';
+  topButtons.style.display='flex';
+  counterBox.style.display='flex';
+  clearBtn.style.display=isAdmin?'block':'none';
+
+  const canEdit = userType === 'player';
+  [vPlus,vMinus,dPlus,dMinus].forEach(b=>{
+    b.style.display = canEdit ? 'inline-block' : 'none';
+  });
+}
+
+async function loadHistory(){
+  const r=await fetch('/chat/'+chatId);
+  const msgs=await r.json();
+  chatUl.innerHTML='';
+  msgs.forEach(showMsg);
+}
+
+function showMsg(m){
+  const li=document.createElement('li');
+  li.className=
+    m.author==='Admin'?'admin':
+    m.author==='Player'?'player':'client';
+  li.innerHTML=`<b>${m.author}</b><br>${m.text}
+    <div class="time">${new Date(m.time).toLocaleString()}</div>`;
+  chatUl.appendChild(li);
+  chatUl.scrollTop=chatUl.scrollHeight;
+}
+
+chatForm.onsubmit=e=>{
+  e.preventDefault();
+  if(!msgInput.value.trim())return;
+  socket.emit('sendMessage',msgInput.value);
+  msgInput.value='';
+};
+
+socket.on('receiveMessage',showMsg);
+
+// ===== CONTADOR SOCKET =====
+vPlus.onclick = ()=> socket.emit('updateCounter',{ field:'victorias', delta:1 });
+vMinus.onclick = ()=> socket.emit('updateCounter',{ field:'victorias', delta:-1 });
+dPlus.onclick = ()=> socket.emit('updateCounter',{ field:'derrotas', delta:1 });
+dMinus.onclick = ()=> socket.emit('updateCounter',{ field:'derrotas', delta:-1 });
+
+socket.on('counterInit', data=>{
+  vSpan.textContent = data.victorias;
+  dSpan.textContent = data.derrotas;
 });
+
+socket.on('counterUpdate', data=>{
+  vSpan.textContent = data.victorias;
+  dSpan.textContent = data.derrotas;
+});
+
+// ===== EXIT =====
+exitBtn.onclick=()=>{
+  chatUl.style.display='none';
+  chatForm.style.display='none';
+  topButtons.style.display='none';
+  counterBox.style.display='none';
+
+  if(isAdmin){
+    loadAdminPanel();
+  }else{
+    localStorage.removeItem('ufs_session');
+    location.reload();
+  }
+};
+
+clearBtn.onclick=()=>socket.emit('clearChat');
+socket.on('chatCleared',()=>chatUl.innerHTML='');
+
+// ===== SAVE SESSION =====
+function saveSession(){
+  localStorage.setItem('ufs_session',JSON.stringify({
+    chatId,userType,password
+  }));
+}
 </script>
-
 </body>
 </html>
