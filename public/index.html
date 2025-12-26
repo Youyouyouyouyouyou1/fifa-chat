@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ULTIMATEFUTSERVICE CHAT</title>
 
 <style>
@@ -16,28 +16,29 @@ body{
   align-items:center;
   min-height:100vh;
   margin:0;
-  padding:1rem
+  padding:1rem;
 }
 
-/* 🔥 TÍTULO MÁS GRANDE */
+/* 🔥 Título más grande, mejor en móvil */
 h2{
   color:var(--primary);
   margin:.8rem 0;
-  font-size:2.4rem;
+  font-size:2.6rem;
   letter-spacing:1px;
+  text-align:center;
 }
 
 button,input,select{
-  padding:10px;
+  padding:12px;
   border-radius:8px;
   border:none;
-  font-size:1rem
+  font-size:1rem;
 }
 button{
   background:var(--primary);
   color:#000;
   font-weight:bold;
-  cursor:pointer
+  cursor:pointer;
 }
 
 #loginForm,#adminPanel{
@@ -48,7 +49,7 @@ button{
   max-width:400px;
   display:flex;
   flex-direction:column;
-  gap:1rem
+  gap:1rem;
 }
 
 #chat{
@@ -69,7 +70,7 @@ button{
   padding:10px;
   border-radius:12px;
   max-width:80%;
-  margin-bottom:8px
+  margin-bottom:8px;
 }
 .client{background:#00ffea;color:#000;align-self:flex-start}
 .player{background:#fff;color:#000;align-self:flex-end}
@@ -80,13 +81,13 @@ button{
   width:100%;
   max-width:700px;
   display:none;
-  gap:8px
+  gap:8px;
 }
 
 #topButtons{
   display:none;
   gap:8px;
-  margin-bottom:1rem
+  margin-bottom:1rem;
 }
 #exitBtn{background:#ff4444;color:#fff}
 #clearBtn{background:#ffaa00;color:#000;display:none}
@@ -95,9 +96,60 @@ button{
   background:rgba(255,255,255,.1);
   padding:12px;
   border-radius:10px;
-  cursor:pointer
+  cursor:pointer;
 }
 .chatItem:hover{background:rgba(255,255,255,.2)}
+
+/* 📱 Counter más responsive */
+#counterBox{
+  display:none;
+  width:100%;
+  max-width:700px;
+  justify-content:center;
+  align-items:center;
+  gap:50px;
+  margin-bottom:10px;
+}
+
+/* texto pequeño y números más grandes */
+.counter-label{
+  font-size:.75rem;
+  opacity:.7;
+  letter-spacing:1px;
+}
+.counter-num{
+  font-size:2.6rem;
+  font-weight:bold;
+  line-height:1;
+}
+
+/* 📱 Ajustes móviles */
+@media(max-width:600px){
+  h2{ font-size:2.2rem; }
+  #counterBox{ gap:25px; }
+
+  .counter-num{ font-size:2.3rem; }
+  button,input,select{ font-size:.9rem; padding:9px; }
+
+  #chat li{
+    max-width:90%;
+    font-size:.95rem;
+  }
+
+  #counterBox img{
+    height:75px !important;
+  }
+}
+
+/* 📱 móviles pequeños */
+@media(max-width:420px){
+  h2{ font-size:1.9rem; }
+  .counter-num{ font-size:2rem; }
+  #counterBox{ gap:18px; }
+  #counterBox img{
+    height:65px !important;
+  }
+}
 </style>
 </head>
 
@@ -106,21 +158,20 @@ button{
 <h2>💬 ULTIMATEFUTSERVICE Chat</h2>
 
 <!-- ===== CONTADOR ===== -->
-<div id="counterBox" style="display:none;align-items:center;gap:60px;margin-bottom:15px">
+<div id="counterBox">
   <div style="text-align:center">
     <button id="vMinus">-</button>
-    <div style="font-size:.7rem;opacity:.7;letter-spacing:1px">WINS</div>
-    <div id="victorias" style="font-size:2.4rem;font-weight:bold">0</div>
+    <div class="counter-label">WINS</div>
+    <div id="victorias" class="counter-num">0</div>
     <button id="vPlus">+</button>
   </div>
 
-  <!-- 🖼 FUT LOGO MÁS GRANDE -->
   <img src="/fut.png" style="height:95px">
 
   <div style="text-align:center">
     <button id="dMinus">-</button>
-    <div style="font-size:.7rem;opacity:.7;letter-spacing:1px">LOSSES</div>
-    <div id="derrotas" style="font-size:2.4rem;font-weight:bold">0</div>
+    <div class="counter-label">LOSSES</div>
+    <div id="derrotas" class="counter-num">0</div>
     <button id="dPlus">+</button>
   </div>
 </div>
@@ -153,6 +204,7 @@ button{
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+/* 🔥 EL RESTO DEL JS SE MANTIENE TAL CUAL, SIN CAMBIOS */
 const socket = io({transports:['websocket','polling']});
 
 const loginForm = document.getElementById('loginForm');
@@ -177,7 +229,6 @@ let password='';
 let isAdmin=false;
 let pendingJoin=null;
 
-// ===== UI =====
 userTypeSelect.onchange=()=>{
   passwordInput.style.display =
     ['player','admin'].includes(userTypeSelect.value)?'block':'none';
@@ -204,7 +255,6 @@ btnEnter.onclick=()=>{
   joinChat(chatId,userType,password);
 };
 
-// ===== SESSION RESTORE =====
 socket.on('connect', ()=>{
   const saved = JSON.parse(localStorage.getItem('ufs_session')||'null');
   if(saved && saved.userType!=='admin'){
@@ -216,7 +266,6 @@ socket.on('connect', ()=>{
   }
 });
 
-// ===== JOIN =====
 function joinChat(id,type,pass){
   pendingJoin={id,type};
   socket.emit('joinChat',{id,type,password:pass});
@@ -229,7 +278,6 @@ socket.on('joined', ()=>{
   pendingJoin=null;
 });
 
-// ===== ADMIN PANEL =====
 async function loadAdminPanel(){
   adminPanel.innerHTML='<h3>Active Chats</h3>';
   adminPanel.style.display='flex';
@@ -251,7 +299,6 @@ async function loadAdminPanel(){
   });
 }
 
-// ===== CHAT =====
 function showChat(){
   loginForm.style.display='none';
   adminPanel.style.display='none';
@@ -294,7 +341,6 @@ chatForm.onsubmit=e=>{
 
 socket.on('receiveMessage',showMsg);
 
-// ===== CONTADOR SOCKET =====
 vPlus.onclick = ()=> socket.emit('updateCounter',{ field:'victorias', delta:1 });
 vMinus.onclick = ()=> socket.emit('updateCounter',{ field:'victorias', delta:-1 });
 dPlus.onclick = ()=> socket.emit('updateCounter',{ field:'derrotas', delta:1 });
@@ -310,7 +356,6 @@ socket.on('counterUpdate', data=>{
   dSpan.textContent = data.derrotas;
 });
 
-// ===== EXIT =====
 exitBtn.onclick=()=>{
   chatUl.style.display='none';
   chatForm.style.display='none';
@@ -328,7 +373,6 @@ exitBtn.onclick=()=>{
 clearBtn.onclick=()=>socket.emit('clearChat');
 socket.on('chatCleared',()=>chatUl.innerHTML='');
 
-// ===== SAVE SESSION =====
 function saveSession(){
   localStorage.setItem('ufs_session',JSON.stringify({
     chatId,userType,password
